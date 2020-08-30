@@ -15,6 +15,7 @@ namespace IotRouter
         public class DeviceMappingEntry
         {
             public string DevEUI { get; set; }
+            public TypeConfigReference Processor { get; set; }
             public IEnumerable<TypeConfigReference> Destinations { get; set; }
         }
 

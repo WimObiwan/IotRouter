@@ -19,12 +19,12 @@ namespace IotRouter.Parsers.Dragino
             string devEUI = parserData.GetDevEUI();
             DateTime dateTime = parserData.GetTime();
 
-            decimal batV = parserData.GetPayloadValue("batV").AsDecimal();
+            decimal batV = parserData.GetPayloadValue("BatV").AsDecimal();
             var keyValues = new List<ParsedData.KeyValue>()
             {
                 new ParsedData.KeyValue("BatV", batV),
                 new ParsedData.KeyValue("BatPrc", (batV - 3.40m) / 0.60m * 100),
-                //new ParsedData.KeyValue("RSSI", parserData.GetRSSI()),
+                new ParsedData.KeyValue("RSSI", parserData.GetRSSI()),
             };
 
             return new ParsedData(devEUI, dateTime, keyValues);

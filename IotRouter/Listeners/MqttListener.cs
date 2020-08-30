@@ -16,6 +16,7 @@ namespace IotRouter
         ILogger<MqttListener> _logger;
         IMqttClient _mqttClient;
         private bool disposedValue;
+        private bool disconnecting;
 
         public string Name { get; private set; }
         public string Server { get; private set; }
@@ -37,6 +38,7 @@ namespace IotRouter
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            disconnecting = false;
             MqttFactory factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
 
@@ -55,6 +57,15 @@ namespace IotRouter
                 _logger.LogInformation($"MqttListener {Name}: Subscribed");
             });
 
+            _mqttClient.UseDisconnectedHandler(async e =>
+            {
+                if (!disconnecting) {
+                    _logger.LogWarning($"MqttListener {Name}: Disconnected, trying to reconnect");
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    await _mqttClient.ConnectAsync(options, CancellationToken.None);
+                }
+            });
+
             _mqttClient.UseApplicationMessageReceivedHandler(e =>
             {
                 _logger.LogInformation($"MqttListener {Name}: Message received\n"
@@ -70,6 +81,7 @@ namespace IotRouter
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
+            disconnecting = true;
             await _mqttClient.DisconnectAsync();
         }
 

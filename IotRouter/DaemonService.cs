@@ -15,16 +15,19 @@ namespace IotRouter
         private readonly IOptions<Config> _config;
         private readonly IEnumerable<IListener> _listeners;
         private readonly IEnumerable<IParser> _parsers;
+        private readonly IEnumerable<IProcessor> _processors;
         private readonly IEnumerable<IDestination> _destinations;
         private readonly IEnumerable<IRoute> _routes;
 
         public DaemonService(ILogger<DaemonService> logger, IOptions<Config> config, IEnumerable<IListener> listeners,
-            IEnumerable<IParser> parsers, IEnumerable<IDestination> destinations, IEnumerable<IRoute> routes)
+            IEnumerable<IParser> parsers, IEnumerable<IProcessor> processors,
+            IEnumerable<IDestination> destinations, IEnumerable<IRoute> routes)
         {
             _logger = logger;
             _config = config;
             _listeners = listeners;
             _parsers = parsers;
+            _processors = processors;
             _destinations = destinations;
             _routes = routes;
         }
@@ -44,13 +47,14 @@ namespace IotRouter
                 var listener = _listeners.Single(l => l.Name == route.Listener);
                 var parser = _parsers.Single(p => p.Name == route.Parser);
                 // var destinations = route.Destinations.Select(s1 => _destinations.Single(s2 => s2.Name == s1)).AsEnumerable();
-                var deviceMapping = route.DeviceMapping
-                    .Select(d => new 
+                var deviceMapping = route.DeviceMappings
+                    .Select(d => new DeviceMapping()
                     {
                         DevEUI = d.Key,
-                        Destinations = d.Value.Select(s1 => _destinations.Single(s2 => s2.Name == s1)).AsEnumerable()
+                        Processor = d.Value.ProcessorName == null ? null : _processors.Single(s => s.Name == d.Value.ProcessorName),
+                        Destinations = d.Value.DestinationNames.Select(s1 => _destinations.Single(s2 => s2.Name == s1)).AsEnumerable()
                     })
-                    .ToDictionary(e => e.DevEUI, e => e.Destinations);
+                    .ToDictionary(e => e.DevEUI, e => e);
 
                 listener.MessageReceived += (s, e) => ListenerMessageReceived(listener, parser, deviceMapping, e.Topic, e.Payload);
             }
@@ -80,7 +84,7 @@ namespace IotRouter
         }
 
         private Task ListenerMessageReceived(IListener listener, IParser parser, 
-            IDictionary<string, IEnumerable<IDestination>> deviceMapping,
+            IDictionary<string, DeviceMapping> deviceMappings,
             string topic, byte[] data)
         {
             ParsedData parsedData;
@@ -97,17 +101,17 @@ namespace IotRouter
             _logger.LogInformation($"DateTime = {parsedData.DateTime}");
             _logger.LogInformation(string.Join(", ", parsedData.KeyValues.Select(kv => $"{kv.Key} = {kv.Value}")));
 
-            return HandleMessage (deviceMapping, parsedData);
+            return HandleMessage (deviceMappings, parsedData);
         }
 
-        private Task HandleMessage(IDictionary<string, IEnumerable<IDestination>> deviceMapping,
+        private Task HandleMessage(IDictionary<string, DeviceMapping> deviceMappings,
             ParsedData parsedData)
         {
             string devEUI = parsedData.DevEUI;
 
-            if (deviceMapping.TryGetValue(devEUI, out IEnumerable<IDestination> destinations))
+            if (deviceMappings.TryGetValue(devEUI, out DeviceMapping deviceMapping))
             {
-                return HandleMessage(destinations, parsedData);
+                return HandleMessage(deviceMapping, parsedData);
             }
             else
             {
@@ -116,10 +120,19 @@ namespace IotRouter
             }
         }
 
-        private Task HandleMessage(IEnumerable<IDestination> destinations,
+        private Task HandleMessage(DeviceMapping deviceMapping,
             ParsedData parsedData)
         {
-            return Task.WhenAll(destinations.Select(async (s) => 
+            if (deviceMapping.Processor != null)
+            {
+                bool continueProcessing = deviceMapping.Processor.Process(parsedData);
+                if (!continueProcessing)
+                {
+                    _logger.LogWarning($"Filtered by processor");
+                    return Task.CompletedTask;
+                }
+            }
+            return Task.WhenAll(deviceMapping.Destinations.Select(async (s) => 
             {
                 try
                 {
@@ -131,6 +144,13 @@ namespace IotRouter
                     throw;
                 }
             }));
+        }
+
+        class DeviceMapping
+        {
+            public string DevEUI { get; set; }
+            public IProcessor Processor { get; set; }
+            public IEnumerable<IDestination> Destinations { get; set; }
         }
     }
 }

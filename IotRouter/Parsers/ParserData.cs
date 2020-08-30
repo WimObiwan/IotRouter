@@ -11,7 +11,7 @@ namespace IotRouter
         private JsonElement _payloadFieldsElement;
         private JsonElement _rootElement;
         private JsonElement _metadataElement;
-        private JsonElement _gatewayElement;
+        private JsonElement _gatewayElements;
 
         public ParserData(byte[] data)
         {
@@ -19,7 +19,7 @@ namespace IotRouter
             _rootElement = _document.RootElement;
             _payloadFieldsElement = _rootElement.GetProperty("payload_fields"); 
             _metadataElement = _rootElement.GetProperty("metadata"); 
-            _gatewayElement = _metadataElement.GetProperty("gateways").EnumerateArray().First();
+            _gatewayElements = _metadataElement.GetProperty("gateways");
         }
 
         private static ParserValue Get(JsonElement element, string key)
@@ -65,7 +65,7 @@ namespace IotRouter
 
         public decimal GetRSSI()
         {
-            return ParserValue.AsDecimal(_gatewayElement.GetProperty("rssi"));
+            return _gatewayElements.EnumerateArray().Max(g => ParserValue.AsDecimal(g.GetProperty("rssi")));
         }
 
         public DateTime GetTime()

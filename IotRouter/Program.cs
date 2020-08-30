@@ -37,6 +37,7 @@ namespace IotRouter
 
                     var listenerConfigs = GetTypeConfigs(configSection.GetSection("Listeners"));
                     var parserConfigs = GetTypeConfigs(configSection.GetSection("Parsers"));
+                    var processorConfigs = GetTypeConfigs(configSection.GetSection("Processors"));
                     var destinationConfigs = GetTypeConfigs(configSection.GetSection("Destinations"));
 
                     foreach (var routeConfig in configSection.GetSection("Routes").GetChildren().Select(m => m.Get<RouteConfig>()))
@@ -45,21 +46,26 @@ namespace IotRouter
                             continue;
                         string listenerName = Activate<IListener>(listenerConfigs[routeConfig.Listener.Name], routeConfig.Listener.Config, services);
                         string parserName = Activate<IParser>(parserConfigs[routeConfig.Parser.Name], routeConfig.Parser.Config, services);
-                        IDictionary<string, IEnumerable<string>> deviceMapping = routeConfig.DeviceMapping
-                            .Select(m => new {
+                        IDictionary<string, DeviceMapping> deviceMappings = routeConfig.DeviceMapping
+                            .Select(m => new DeviceMapping() 
+                                {
                                     DevEUI = m.DevEUI,
-                                    Destinations = (IEnumerable<string>)m.Destinations
+                                    ProcessorName = 
+                                        m.Processor == null ? 
+                                            null 
+                                            : Activate<IProcessor>(processorConfigs[m.Processor.Name], m.Processor.Config, services),
+                                    DestinationNames = m.Destinations
                                         .Select(d => Activate<IDestination>(destinationConfigs[d.Name], d.Config, services))
                                         .ToList()
                                 })
-                            .ToDictionary(e => e.DevEUI, e => e.Destinations);                        
+                            .ToDictionary(e => e.DevEUI, e => e);                        
 
                         services.AddSingleton<IRoute, Route>(s =>
                             new Route(s.GetRequiredService<ILogger<Route>>())
                             {
                                 Listener = listenerName,
                                 Parser = parserName,
-                                DeviceMapping = deviceMapping
+                                DeviceMappings = deviceMappings
                             });
                     }
                 })

@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace IotRouter
 {
-    public class WaterlevelParser : Parser
+    public class DistanceParser : Parser
     {
-        public WaterlevelParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)
-            : base(serviceProvider.GetService<ILogger<WaterlevelParser>>(), name)
+
+        public DistanceParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)
+            : base(serviceProvider.GetService<ILogger<DistanceParser>>(), name)
         {
         }
         
@@ -19,10 +19,12 @@ namespace IotRouter
             string devEUI = parserData.GetDevEUI();
             DateTime dateTime = parserData.GetTime();
 
+            decimal distance = parserData.GetPayloadValue("distance").AsDecimal();
+
             var keyValues = new List<ParsedData.KeyValue>()
             {
                 new ParsedData.KeyValue("RSSI", parserData.GetRSSI()),
-                new ParsedData.KeyValue("waterlevel", parserData.GetPayloadValue("distance").AsDecimal() - 5m),
+                new ParsedData.KeyValue("distance", distance),
             };
 
             return new ParsedData(devEUI, dateTime, keyValues);

@@ -22,9 +22,9 @@ public class ParsedData
 
     public string DevEUI { get; private set; }
     public DateTime? DateTime { get; private set; }
-    public IEnumerable<KeyValue> KeyValues { get; private set; }
+    public IList<KeyValue> KeyValues { get; private set; }
 
-    public ParsedData(string devEUI, DateTime? dateTime, IEnumerable<KeyValue> keyValues)
+    public ParsedData(string devEUI, DateTime? dateTime, IList<KeyValue> keyValues)
     {
         DevEUI = devEUI;
         DateTime = dateTime;

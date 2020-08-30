@@ -6,6 +6,6 @@ namespace IotRouter
     {
         string Listener { get; set; }
         string Parser { get; set; }
-        IDictionary<string, IEnumerable<string>> DeviceMapping { get; set; }
+        IDictionary<string, DeviceMapping> DeviceMappings { get; set; }
     }
 }

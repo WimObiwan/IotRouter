@@ -9,7 +9,7 @@ namespace IotRouter
 
         public string Listener { get; set; }
         public string Parser { get; set; }
-        public IDictionary<string, IEnumerable<string>> DeviceMapping { get; set; }
+        public IDictionary<string, DeviceMapping> DeviceMappings { get; set; }
 
         public Route(ILogger<Route> logger)
         {
