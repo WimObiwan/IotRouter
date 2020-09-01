@@ -18,6 +18,11 @@ public class ParsedData
         : this(key, (object)value)
         {
         }
+
+        public KeyValue(string key, double value) 
+        : this(key, (object)value)
+        {
+        }
     }
 
     public string DevEUI { get; private set; }

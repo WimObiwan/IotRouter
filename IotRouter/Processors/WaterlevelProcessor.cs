@@ -21,11 +21,10 @@ namespace IotRouter
         
         public double EMAFilter_lambdahour { get; private set; }
         public int EMAFilter_ignore_threshold { get; private set; }
-        public int EMAFilter_drop_threshold { get; private set; }
-        public int EMAFilter_drop_timeoutsec { get; private set; }
 
-        public decimal? EMAFilter_state { get; private set; }
-        public DateTime? EMAFilter_droptill { get; private set; }
+        public double EMAFilter_current_ignore_threshold { get; private set; }
+
+        public double? EMAFilter_average_distance { get; private set; }
         public TimeSpan? AverageInterval { get; private set; }
         public const double AverageInterval_lambda = 0.2;
         public DateTime? LastPacketDateTime { get; private set; }
@@ -48,10 +47,8 @@ namespace IotRouter
 
             EMAFilter_lambdahour = config.GetValue("EMAFilter_lambdahour", 0.95); // 12" --> 0.01
             EMAFilter_ignore_threshold = config.GetValue("EMAFilter_ignore_threshold", span / 30); // 1700 / 30 = ~55
-            EMAFilter_drop_threshold = config.GetValue("EMAFilter_drop_threshold", span / 3); // 1700 / 3 = ~550
-            EMAFilter_drop_timeoutsec = config.GetValue("EMAFilter_drop_timeoutsec", 1800);
-            EMAFilter_state = null;
-            EMAFilter_droptill = null;
+            EMAFilter_average_distance = null;
+            EMAFilter_current_ignore_threshold = 0;
         }
         
         public bool Process(ParsedData parsedData)
@@ -63,7 +60,19 @@ namespace IotRouter
 
             DateTime dateTime = parsedData.DateTime ?? DateTime.UtcNow;
 
+            double average_distance;
+            if (EMAFilter_average_distance.HasValue)
+            {
+                average_distance = EMAFilter_average_distance.Value;
+            }
+            else
+            {
+                average_distance = (double)distance;
+            }
+
             // Calculate some "average interval", roughly based on last 5 to 10 values
+            // Derive a "EMA lambda" which is dependent of the update frequency 
+            double? lambda;
             if (LastPacketDateTime.HasValue)
             {
                 TimeSpan interval = dateTime - LastPacketDateTime.Value;
@@ -75,84 +84,70 @@ namespace IotRouter
                     averageInterval = interval;
                 AverageInterval = averageInterval;
                 _logger.LogInformation($"Average interval is now {averageInterval}, last inerval is {interval}");
-            }
-            LastPacketDateTime = dateTime;
-
-            if (EMAFilter_state.HasValue)
-            {
-                decimal EMAFilter_oldstate = EMAFilter_state.Value;
-                decimal absdiff = Math.Abs(EMAFilter_oldstate - distance);
-
-                if (absdiff > EMAFilter_drop_threshold)
-                {
-                    if (!EMAFilter_droptill.HasValue)
-                    {
-                        _logger.LogWarning($"Drop: Distance ({distance}) exceeds EMA ({EMAFilter_oldstate}) using threshold ({EMAFilter_drop_threshold}), resetting timeout");
-                        EMAFilter_droptill = dateTime.AddSeconds(EMAFilter_drop_timeoutsec);
-                        return true;
-                    }
-                    else if (dateTime < EMAFilter_droptill)
-                    {
-                        _logger.LogWarning($"Drop: Distance ({distance}) exceeds EMA ({EMAFilter_oldstate}) using threshold ({EMAFilter_drop_threshold}), drop till {EMAFilter_droptill:T}");
-                        return true;
-                    }
-
-                    _logger.LogWarning($"No longer drop: Distance ({distance}) exceeds EMA ({EMAFilter_oldstate}) using threshold ({EMAFilter_drop_threshold}), was dropped till {EMAFilter_droptill:T}");
-                }
-
-
-                // Derive a "lambda" to 
-                if (AverageInterval.HasValue)
-                {
-                    double lambda = 1.0 - Math.Pow(1 - EMAFilter_lambdahour, AverageInterval.Value.TotalHours); 
-
-                    decimal EMAFilter_newstate = distance * (decimal)lambda + EMAFilter_oldstate * (1 - (decimal)lambda);
-                    EMAFilter_state = EMAFilter_newstate;
-
-                    if (absdiff > EMAFilter_ignore_threshold)
-                    {
-                        _logger.LogWarning($"Ignore: Distance ({distance}) exceeds EMA ({EMAFilter_oldstate}) using threshold ({EMAFilter_ignore_threshold})");
-                        return true;
-                    }
-                    _logger.LogInformation($"Distance ({distance}) does not exceed EMA ({EMAFilter_oldstate}), threshold ({EMAFilter_ignore_threshold})");
-                    distance = EMAFilter_newstate;
-                }
-
-                EMAFilter_droptill = null;
+                lambda = 1.0 - Math.Pow(1 - EMAFilter_lambdahour, AverageInterval.Value.TotalHours);
             }
             else
             {
-                EMAFilter_state = distance;
+                lambda = null;
+            }
+            LastPacketDateTime = dateTime;
+
+            double absdiff = Math.Abs(average_distance - (double)distance);
+            double current_ignore_threshold = EMAFilter_current_ignore_threshold + EMAFilter_ignore_threshold;
+
+            parsedData.KeyValues.Add(new ParsedData.KeyValue("ignore_threshold", current_ignore_threshold));
+            parsedData.KeyValues.Add(new ParsedData.KeyValue("distance_ignore_min", average_distance - current_ignore_threshold));
+            parsedData.KeyValues.Add(new ParsedData.KeyValue("distance_ignore_max", average_distance + current_ignore_threshold));
+
+            bool above_threshold = absdiff > current_ignore_threshold;
+
+            if (lambda.HasValue)
+            {
+                EMAFilter_current_ignore_threshold = absdiff * lambda.Value + EMAFilter_current_ignore_threshold * (1 - lambda.Value);
             }
 
-            parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", distance));
+            if (above_threshold)
+            {
+                _logger.LogWarning($"Ignore: Distance ({distance}) exceeds EMA ({average_distance}) using threshold ({current_ignore_threshold})");
+                return true;
+            }
 
-            decimal level;
+            if (lambda.HasValue)
+            {
+                average_distance = (double)distance * lambda.Value + average_distance * (1 - lambda.Value);
+            }
+
+            EMAFilter_average_distance = average_distance;
+
+            parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", average_distance));
+
+            // Based on distance, calculate the percentage full
+            double level;
             if (LevelX.HasValue && PercentX.HasValue)
             {
                 int levelX = LevelX.Value;
-                decimal percentX = PercentX.Value;
-                decimal part1, part2;
-                if (distance > LevelX)
+                double percentX = (double)PercentX.Value;
+                double part1, part2;
+                if (average_distance > LevelX)
                 {
-                    part1 = Level0 - distance;
+                    part1 = (double)Level0 - average_distance;
                     part2 = 0;
                 }
                 else
                 {
                     part1 = Level0 - levelX;
-                    part2 = levelX - distance;
+                    part2 = (double)levelX - average_distance;
                 }
                 level = part1 * percentX / (Level0 - levelX) + part2 * (1 - percentX) / (levelX - Level100);
             }
             else
             {
-                level = (Level0 - distance) / (Level0 - Level100);
+                level = (Level0 - average_distance) / (Level0 - Level100);
             }
+            parsedData.KeyValues.Add(new ParsedData.KeyValue("level", level * 100.0));
 
-            decimal liter = Liter100 * level;
-
-            parsedData.KeyValues.Add(new ParsedData.KeyValue("level", level * 100m));
+            // Based on the percentage full, calculate the water volume
+            double liter = Liter100 * level;
             parsedData.KeyValues.Add(new ParsedData.KeyValue("liter", liter));
 
             return true;
