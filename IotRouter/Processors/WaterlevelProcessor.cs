@@ -22,12 +22,12 @@ namespace IotRouter
         public double EMAFilter_lambdahour { get; private set; }
         public int EMAFilter_ignore_threshold { get; private set; }
 
-        public double EMAFilter_current_ignore_threshold { get; private set; }
-
-        public double? EMAFilter_average_distance { get; private set; }
-        public TimeSpan? AverageInterval { get; private set; }
         public const double AverageInterval_lambda = 0.2;
-        public DateTime? LastPacketDateTime { get; private set; }
+
+        private double _EMAFilter_current_ignore_threshold;
+        private double? _EMAFilter_average_distance;
+        private TimeSpan? _averageInterval;
+        private DateTime? _lastPacketDateTime;
 
         public WaterlevelProcessor(IServiceProvider serviceProvider, IConfigurationSection config, string name)
         {
@@ -47,8 +47,8 @@ namespace IotRouter
 
             EMAFilter_lambdahour = config.GetValue("EMAFilter_lambdahour", 0.95); // 12" --> 0.01
             EMAFilter_ignore_threshold = config.GetValue("EMAFilter_ignore_threshold", span / 30); // 1700 / 30 = ~55
-            EMAFilter_average_distance = null;
-            EMAFilter_current_ignore_threshold = 0;
+            _EMAFilter_average_distance = null;
+            _EMAFilter_current_ignore_threshold = 0;
         }
         
         public bool Process(ParsedData parsedData)
@@ -61,9 +61,9 @@ namespace IotRouter
             DateTime dateTime = parsedData.DateTime ?? DateTime.UtcNow;
 
             double average_distance;
-            if (EMAFilter_average_distance.HasValue)
+            if (_EMAFilter_average_distance.HasValue)
             {
-                average_distance = EMAFilter_average_distance.Value;
+                average_distance = _EMAFilter_average_distance.Value;
             }
             else
             {
@@ -73,27 +73,27 @@ namespace IotRouter
             // Calculate some "average interval", roughly based on last 5 to 10 values
             // Derive a "EMA lambda" which is dependent of the update frequency 
             double? lambda;
-            if (LastPacketDateTime.HasValue)
+            if (_lastPacketDateTime.HasValue)
             {
-                TimeSpan interval = dateTime - LastPacketDateTime.Value;
+                TimeSpan interval = dateTime - _lastPacketDateTime.Value;
                 TimeSpan averageInterval;
-                if (AverageInterval.HasValue)
+                if (_averageInterval.HasValue)
                     averageInterval = TimeSpan.FromTicks(
-                        (long)(interval.Ticks * AverageInterval_lambda + AverageInterval.Value.Ticks * (1 - AverageInterval_lambda)));
+                        (long)(interval.Ticks * AverageInterval_lambda + _averageInterval.Value.Ticks * (1 - AverageInterval_lambda)));
                 else
                     averageInterval = interval;
-                AverageInterval = averageInterval;
+                _averageInterval = averageInterval;
                 _logger.LogInformation($"Average interval is now {averageInterval}, last inerval is {interval}");
-                lambda = 1.0 - Math.Pow(1 - EMAFilter_lambdahour, AverageInterval.Value.TotalHours);
+                lambda = 1.0 - Math.Pow(1 - EMAFilter_lambdahour, _averageInterval.Value.TotalHours);
             }
             else
             {
                 lambda = null;
             }
-            LastPacketDateTime = dateTime;
+            _lastPacketDateTime = dateTime;
 
             double absdiff = Math.Abs(average_distance - (double)distance);
-            double current_ignore_threshold = EMAFilter_current_ignore_threshold + EMAFilter_ignore_threshold;
+            double current_ignore_threshold = _EMAFilter_current_ignore_threshold + EMAFilter_ignore_threshold;
 
             parsedData.KeyValues.Add(new ParsedData.KeyValue("ignore_threshold", current_ignore_threshold));
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance_ignore_min", average_distance - current_ignore_threshold));
@@ -103,7 +103,7 @@ namespace IotRouter
 
             if (lambda.HasValue)
             {
-                EMAFilter_current_ignore_threshold = absdiff * lambda.Value + EMAFilter_current_ignore_threshold * (1 - lambda.Value);
+                _EMAFilter_current_ignore_threshold = absdiff * lambda.Value + _EMAFilter_current_ignore_threshold * (1 - lambda.Value);
             }
 
             if (above_threshold)
@@ -117,7 +117,7 @@ namespace IotRouter
                 average_distance = (double)distance * lambda.Value + average_distance * (1 - lambda.Value);
             }
 
-            EMAFilter_average_distance = average_distance;
+            _EMAFilter_average_distance = average_distance;
 
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", average_distance));
 
