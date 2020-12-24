@@ -53,7 +53,7 @@ namespace IotRouter
             _mqttClient.UseConnectedHandler(async e =>
             {
                 _logger.LogInformation($"MqttListener {Name}: Connected");
-                await _mqttClient.SubscribeAsync(new TopicFilterBuilder().WithTopic(Topic).Build());
+                await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic(Topic).Build());
                 _logger.LogInformation($"MqttListener {Name}: Subscribed");
             });
 
