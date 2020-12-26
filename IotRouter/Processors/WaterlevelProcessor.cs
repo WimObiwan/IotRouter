@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -31,7 +32,7 @@ namespace IotRouter
 
         public WaterlevelProcessor(IServiceProvider serviceProvider, IConfigurationSection config, string name)
         {
-            _logger = serviceProvider.GetService<ILogger<WaterlevelProcessor>>();
+            _logger = serviceProvider.GetRequiredService<ILogger<WaterlevelProcessor>>();
 
             Name = name;
             Level0 = config.GetValue("Level0", 2000);
@@ -51,7 +52,7 @@ namespace IotRouter
             _EMAFilter_current_ignore_threshold = 0;
         }
         
-        public bool Process(ParsedData parsedData)
+        public async Task<bool> Process(ParsedData parsedData)
         {
             var kv = parsedData.KeyValues.Single(kv => kv.Key == "distance");
             decimal distance = (decimal)kv.Value;
