@@ -120,19 +120,19 @@ namespace IotRouter
             }
         }
 
-        private Task HandleMessage(DeviceMapping deviceMapping,
+        private async Task HandleMessage(DeviceMapping deviceMapping,
             ParsedData parsedData)
         {
             if (deviceMapping.Processor != null)
             {
-                bool continueProcessing = deviceMapping.Processor.Process(parsedData);
+                bool continueProcessing = await deviceMapping.Processor.Process(parsedData);
                 if (!continueProcessing)
                 {
                     _logger.LogWarning($"Filtered by processor");
-                    return Task.CompletedTask;
                 }
             }
-            return Task.WhenAll(deviceMapping.Destinations.Select(async (s) => 
+
+            await Task.WhenAll(deviceMapping.Destinations.Select(async (s) => 
             {
                 try
                 {

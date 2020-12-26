@@ -34,6 +34,7 @@ namespace IotRouter
                     var sect = hostContext.Configuration.GetSection("Config").GetSection("Listeners").GetChildren();
 
                     services.AddSingleton<IHostedService, DaemonService>();
+                    services.AddSingleton<IStateService, StateService>();
 
                     var listenerConfigs = GetTypeConfigs(configSection.GetSection("Listeners"));
                     var parserConfigs = GetTypeConfigs(configSection.GetSection("Parsers"));

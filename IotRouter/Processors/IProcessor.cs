@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace IotRouter
 {
@@ -6,6 +7,6 @@ namespace IotRouter
     {
         string Name { get; }
         
-        bool Process(ParsedData parsedData);
+        Task<bool> Process(ParsedData parsedData);
     }
 }
