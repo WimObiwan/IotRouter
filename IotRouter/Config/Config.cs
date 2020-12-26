@@ -4,5 +4,6 @@ namespace IotRouter
 {
     public class Config 
     {
+        public string BaseDirectory { get; set; }
     }
 }
