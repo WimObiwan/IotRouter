@@ -11,7 +11,16 @@ namespace IotRouter
 {
     public class WaterlevelProcessor : IProcessor
     {
+        class State
+        {
+            public double EMAFilter_current_ignore_threshold { get; set; }
+            public double? EMAFilter_average_distance { get; set; }
+            public TimeSpan? AverageInterval { get; set; }
+            public DateTime? LastPacketDateTime { get; set; }
+        }
+
         ILogger<WaterlevelProcessor> _logger;
+        IStateService _stateProvider;
 
         public string Name { get; private set; }
         public int Level0 { get; private set; }
@@ -25,14 +34,10 @@ namespace IotRouter
 
         public const double AverageInterval_lambda = 0.2;
 
-        private double _EMAFilter_current_ignore_threshold;
-        private double? _EMAFilter_average_distance;
-        private TimeSpan? _averageInterval;
-        private DateTime? _lastPacketDateTime;
-
         public WaterlevelProcessor(IServiceProvider serviceProvider, IConfigurationSection config, string name)
         {
             _logger = serviceProvider.GetRequiredService<ILogger<WaterlevelProcessor>>();
+            _stateProvider = serviceProvider.GetRequiredService<IStateService>();
 
             Name = name;
             Level0 = config.GetValue("Level0", 2000);
@@ -48,8 +53,6 @@ namespace IotRouter
 
             EMAFilter_lambdahour = config.GetValue("EMAFilter_lambdahour", 0.95); // 12" --> 0.01
             EMAFilter_ignore_threshold = config.GetValue("EMAFilter_ignore_threshold", span / 30); // 1700 / 30 = ~55
-            _EMAFilter_average_distance = null;
-            _EMAFilter_current_ignore_threshold = 0;
         }
         
         public async Task<bool> Process(ParsedData parsedData)
@@ -61,10 +64,18 @@ namespace IotRouter
 
             DateTime dateTime = parsedData.DateTime ?? DateTime.UtcNow;
 
+            string stateContext = nameof(WaterlevelProcessor) + "#" + parsedData.DevEUI;
+            State state = await _stateProvider.LoadStateAsync<State>(stateContext,
+                () => new State
+                {
+                    EMAFilter_average_distance = null,
+                    EMAFilter_current_ignore_threshold = 0
+                });
+
             double average_distance;
-            if (_EMAFilter_average_distance.HasValue)
+            if (state.EMAFilter_average_distance.HasValue)
             {
-                average_distance = _EMAFilter_average_distance.Value;
+                average_distance = state.EMAFilter_average_distance.Value;
             }
             else
             {
@@ -74,27 +85,27 @@ namespace IotRouter
             // Calculate some "average interval", roughly based on last 5 to 10 values
             // Derive a "EMA lambda" which is dependent of the update frequency 
             double? lambda;
-            if (_lastPacketDateTime.HasValue)
+            if (state.LastPacketDateTime.HasValue)
             {
-                TimeSpan interval = dateTime - _lastPacketDateTime.Value;
+                TimeSpan interval = dateTime - state.LastPacketDateTime.Value;
                 TimeSpan averageInterval;
-                if (_averageInterval.HasValue)
+                if (state.AverageInterval.HasValue)
                     averageInterval = TimeSpan.FromTicks(
-                        (long)(interval.Ticks * AverageInterval_lambda + _averageInterval.Value.Ticks * (1 - AverageInterval_lambda)));
+                        (long)(interval.Ticks * AverageInterval_lambda + state.AverageInterval.Value.Ticks * (1 - AverageInterval_lambda)));
                 else
                     averageInterval = interval;
-                _averageInterval = averageInterval;
+                state.AverageInterval = averageInterval;
                 _logger.LogInformation($"Average interval is now {averageInterval}, last inerval is {interval}");
-                lambda = 1.0 - Math.Pow(1 - EMAFilter_lambdahour, _averageInterval.Value.TotalHours);
+                lambda = 1.0 - Math.Pow(1 - EMAFilter_lambdahour, state.AverageInterval.Value.TotalHours);
             }
             else
             {
                 lambda = null;
             }
-            _lastPacketDateTime = dateTime;
+            state.LastPacketDateTime = dateTime;
 
             double absdiff = Math.Abs(average_distance - (double)distance);
-            double current_ignore_threshold = _EMAFilter_current_ignore_threshold + EMAFilter_ignore_threshold;
+            double current_ignore_threshold = state.EMAFilter_current_ignore_threshold + EMAFilter_ignore_threshold;
 
             parsedData.KeyValues.Add(new ParsedData.KeyValue("ignore_threshold", current_ignore_threshold));
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance_ignore_min", average_distance - current_ignore_threshold));
@@ -104,7 +115,7 @@ namespace IotRouter
 
             if (lambda.HasValue)
             {
-                _EMAFilter_current_ignore_threshold = absdiff * lambda.Value + _EMAFilter_current_ignore_threshold * (1 - lambda.Value);
+                state.EMAFilter_current_ignore_threshold = absdiff * lambda.Value + state.EMAFilter_current_ignore_threshold * (1 - lambda.Value);
             }
 
             if (above_threshold)
@@ -118,7 +129,7 @@ namespace IotRouter
                 average_distance = (double)distance * lambda.Value + average_distance * (1 - lambda.Value);
             }
 
-            _EMAFilter_average_distance = average_distance;
+            state.EMAFilter_average_distance = average_distance;
 
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", average_distance));
 
@@ -151,6 +162,8 @@ namespace IotRouter
             double liter = Liter100 * level;
             parsedData.KeyValues.Add(new ParsedData.KeyValue("liter", liter));
 
+            await _stateProvider.StoreStateAsync(stateContext, state);
+            
             return true;
         }
     }
