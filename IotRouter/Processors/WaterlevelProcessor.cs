@@ -121,6 +121,7 @@ namespace IotRouter
             if (above_threshold)
             {
                 _logger.LogWarning($"Ignore: Distance ({distance}) exceeds EMA ({average_distance}) using threshold ({current_ignore_threshold})");
+                await _stateProvider.StoreStateAsync(stateContext, state);
                 return true;
             }
 
