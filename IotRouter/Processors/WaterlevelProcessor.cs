@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ namespace IotRouter
         {
             public double EMAFilter_current_ignore_threshold { get; set; }
             public double? EMAFilter_average_distance { get; set; }
+            [JsonConverter(typeof(TimeSpanConverter))]
             public TimeSpan? AverageInterval { get; set; }
             public DateTime? LastPacketDateTime { get; set; }
         }
