@@ -19,6 +19,12 @@ namespace IotRouter
             [JsonConverter(typeof(TimeSpanConverter))]
             public TimeSpan? AverageInterval { get; set; }
             public DateTime? LastPacketDateTime { get; set; }
+
+            public override string ToString()
+            {
+                return $"EMAFilter_current_ignore_threshold={EMAFilter_current_ignore_threshold}, EMAFilter_average_distance={EMAFilter_average_distance}, "
+                    + $"AverageInterval={AverageInterval}, LastPacketDateTime={LastPacketDateTime}";
+            }
         }
 
         ILogger<WaterlevelProcessor> _logger;
@@ -73,6 +79,7 @@ namespace IotRouter
                     EMAFilter_average_distance = null,
                     EMAFilter_current_ignore_threshold = 0
                 });
+            _logger.LogInformation($"State: {state}");
 
             double average_distance;
             if (state.EMAFilter_average_distance.HasValue)
