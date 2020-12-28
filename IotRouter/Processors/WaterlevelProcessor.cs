@@ -69,6 +69,8 @@ namespace IotRouter
             decimal distance = (decimal)kv.Value;
             parsedData.KeyValues.Remove(kv);
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance_raw", distance));
+            double level_raw = GetLevelFromDistance((double)distance);
+            parsedData.KeyValues.Add(new ParsedData.KeyValue("level_raw", level_raw * 100.0));
 
             DateTime dateTime = parsedData.DateTime ?? DateTime.UtcNow;
 
@@ -130,51 +132,57 @@ namespace IotRouter
             if (above_threshold)
             {
                 _logger.LogWarning($"Ignore: Distance ({distance}) exceeds EMA ({average_distance}) using threshold ({current_ignore_threshold})");
-                await _stateProvider.StoreStateAsync(stateContext, state);
-                return true;
             }
-
-            if (lambda.HasValue)
+            else
             {
-                average_distance = (double)distance * lambda.Value + average_distance * (1 - lambda.Value);
+                if (lambda.HasValue)
+                {
+                    average_distance = (double)distance * lambda.Value + average_distance * (1 - lambda.Value);
+                }
+
+                state.EMAFilter_average_distance = average_distance;
+
+                parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", average_distance));
+
+                double level = GetLevelFromDistance(average_distance);
+                parsedData.KeyValues.Add(new ParsedData.KeyValue("level", level * 100.0));
+
+                // Based on the percentage full, calculate the water volume
+                double liter = Liter100 * level;
+                parsedData.KeyValues.Add(new ParsedData.KeyValue("liter", liter));
             }
 
-            state.EMAFilter_average_distance = average_distance;
+            await _stateProvider.StoreStateAsync(stateContext, state);
+            
+            return true;
+        }
 
-            parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", average_distance));
-
-            // Based on distance, calculate the percentage full
+        private double GetLevelFromDistance(double distance)
+        {
             double level;
             if (LevelX.HasValue && PercentX.HasValue)
             {
                 int levelX = LevelX.Value;
                 double percentX = (double)PercentX.Value;
                 double part1, part2;
-                if (average_distance > LevelX)
+                if (distance > LevelX)
                 {
-                    part1 = (double)Level0 - average_distance;
+                    part1 = (double)Level0 - distance;
                     part2 = 0;
                 }
                 else
                 {
                     part1 = Level0 - levelX;
-                    part2 = (double)levelX - average_distance;
+                    part2 = (double)levelX - distance;
                 }
                 level = part1 * percentX / (Level0 - levelX) + part2 * (1 - percentX) / (levelX - Level100);
             }
             else
             {
-                level = (Level0 - average_distance) / (Level0 - Level100);
+                level = (Level0 - distance) / (Level0 - Level100);
             }
-            parsedData.KeyValues.Add(new ParsedData.KeyValue("level", level * 100.0));
 
-            // Based on the percentage full, calculate the water volume
-            double liter = Liter100 * level;
-            parsedData.KeyValues.Add(new ParsedData.KeyValue("liter", liter));
-
-            await _stateProvider.StoreStateAsync(stateContext, state);
-            
-            return true;
+            return level;
         }
     }
 }
