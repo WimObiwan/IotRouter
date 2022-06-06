@@ -94,14 +94,14 @@ namespace IotRouter
             }
             catch (Exception x)
             {
-                _logger.LogError(x, "Unable te process message");
+                _logger.LogError(x, "Unable to process message");
                 return Task.FromException(x);
             }
 
             _logger.LogInformation($"DateTime = {parsedData.DateTime}");
             _logger.LogInformation(string.Join(", ", parsedData.KeyValues.Select(kv => $"{kv.Key} = {kv.Value}")));
 
-            return HandleMessage (deviceMappings, parsedData);
+            return HandleMessage(deviceMappings, parsedData);
         }
 
         private Task HandleMessage(IDictionary<string, DeviceMapping> deviceMappings,
