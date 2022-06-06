@@ -28,7 +28,9 @@ namespace IotRouter.Parsers.Dragino
 
             if (parserData.TryGetPayloadValue("TempC_DS", out ParserValue parserValue) && !parserValue.IsNull())
             {
-                keyValues.Add(new ParsedData.KeyValue("Soil.Temperature", parserValue.AsDecimal()));
+                var value = parserValue.AsDecimal();
+                if (value >= -30.0m && value <= 80.0m)
+                    keyValues.Add(new ParsedData.KeyValue("Soil.Temperature", value));
             }
 
             return new ParsedData(devEUI, dateTime, keyValues);
