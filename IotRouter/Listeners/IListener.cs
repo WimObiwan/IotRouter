@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace IotRouter
 {
-    public delegate void MessageReceivedHandler(object sender, MessageReceivedEventArgs e);
+    public delegate Task MessageReceivedHandler(object sender, MessageReceivedEventArgs e);
 
     public interface IListener : IDisposable
     {

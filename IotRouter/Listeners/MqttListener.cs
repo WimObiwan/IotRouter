@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Client.Options;
 
 namespace IotRouter
 {
@@ -50,14 +49,14 @@ namespace IotRouter
                 .WithCleanSession()
                 .Build();
 
-            _mqttClient.UseConnectedHandler(async e =>
+            _mqttClient.ConnectedAsync += (async e =>
             {
                 _logger.LogInformation($"MqttListener {Name}: Connected");
                 await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic(Topic).Build());
                 _logger.LogInformation($"MqttListener {Name}: Subscribed");
             });
 
-            _mqttClient.UseDisconnectedHandler(async e =>
+            _mqttClient.DisconnectedAsync += (async e =>
             {
                 if (!disconnecting) {
                     _logger.LogWarning($"MqttListener {Name}: Disconnected, trying to reconnect");
@@ -66,14 +65,14 @@ namespace IotRouter
                 }
             });
 
-            _mqttClient.UseApplicationMessageReceivedHandler(e =>
+            _mqttClient.ApplicationMessageReceivedAsync += (async e =>
             {
                 _logger.LogInformation($"MqttListener {Name}: Message received\n"
                     + $"+ Topic = {e.ApplicationMessage.Topic}\n"
                     + $"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}\n"
                     + $"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}\n"
                     + $"+ Retain = {e.ApplicationMessage.Retain}");
-                MessageReceived?.Invoke(this, new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload));
+                await MessageReceived?.Invoke(this, new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload));
             });
 
             await _mqttClient.ConnectAsync(options, cancellationToken);
