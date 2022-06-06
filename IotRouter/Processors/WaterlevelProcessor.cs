@@ -69,6 +69,11 @@ namespace IotRouter
             decimal distance = (decimal)kv.Value;
             parsedData.KeyValues.Remove(kv);
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance_raw", distance));
+            if (distance == 0)
+            {
+                _logger.LogWarning("Ignoring distance=0");
+                return true;
+            }
             double level_raw = GetLevelFromDistance((double)distance);
             parsedData.KeyValues.Add(new ParsedData.KeyValue("level_raw", level_raw * 100.0));
 
