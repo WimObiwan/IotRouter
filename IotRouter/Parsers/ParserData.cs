@@ -10,16 +10,18 @@ namespace IotRouter
         private JsonDocument _document;
         private JsonElement _payloadFieldsElement;
         private JsonElement _rootElement;
+        private JsonElement _uplinkMessageElement;
         private JsonElement _metadataElement;
-        private JsonElement _gatewayElements;
+        //private JsonElement _gatewayElements;
 
         public ParserData(byte[] data)
         {
             _document = JsonDocument.Parse(Encoding.UTF8.GetString(data));
             _rootElement = _document.RootElement;
-            _payloadFieldsElement = _rootElement.GetProperty("payload_fields"); 
-            _metadataElement = _rootElement.GetProperty("metadata"); 
-            _gatewayElements = _metadataElement.GetProperty("gateways");
+            _uplinkMessageElement = _rootElement.GetProperty("uplink_message");
+            _payloadFieldsElement = _uplinkMessageElement.GetProperty("decoded_payload"); 
+            _metadataElement = _uplinkMessageElement.GetProperty("rx_metadata"); 
+            //_gatewayElements = _metadataElement.GetProperty("gateways");
         }
 
         private static ParserValue Get(JsonElement element, string key)
@@ -60,17 +62,18 @@ namespace IotRouter
 
         public string GetDevEUI()
         {
-            return ParserValue.AsString(_rootElement.GetProperty("hardware_serial"));
+            return ParserValue.AsString(_rootElement.GetProperty("end_device_ids").GetProperty("dev_eui"));
         }
 
         public decimal GetRSSI()
         {
-            return _gatewayElements.EnumerateArray().Max(g => ParserValue.AsDecimal(g.GetProperty("rssi")));
+            //return _gatewayElements.EnumerateArray().Max(g => ParserValue.AsDecimal(g.GetProperty("rssi")));
+            return _metadataElement.EnumerateArray().Max(g => ParserValue.AsDecimal(g.GetProperty("rssi")));
         }
 
         public DateTime GetTime()
         {
-            return ParserValue.AsDateTime(_metadataElement.GetProperty("time"));
+            return ParserValue.AsDateTime(_uplinkMessageElement.GetProperty("received_at"));
         }
     }
 }
