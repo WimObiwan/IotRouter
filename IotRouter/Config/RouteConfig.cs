@@ -12,11 +12,16 @@ namespace IotRouter
             public IConfigurationSection Config { get; set; }
         }
 
+        public class TypeConfigReferenceWithDisable : TypeConfigReference
+        {
+            public bool Disabled { get; set; }
+        }
+
         public class DeviceMappingEntry
         {
             public string DevEUI { get; set; }
             public TypeConfigReference Processor { get; set; }
-            public IEnumerable<TypeConfigReference> Destinations { get; set; }
+            public IEnumerable<TypeConfigReferenceWithDisable> Destinations { get; set; }
         }
 
         public bool Disabled { get; set; }

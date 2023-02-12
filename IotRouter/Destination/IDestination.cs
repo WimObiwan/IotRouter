@@ -7,7 +7,7 @@ namespace IotRouter
     public interface IDestination
     {
         string Name { get; }
-        
+
         Task SendAsync(ParsedData parsedData);
     }
 }
