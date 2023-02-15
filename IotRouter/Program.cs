@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -20,6 +20,7 @@ namespace IotRouter
                 {
                     config.AddEnvironmentVariables();
                     config.AddJsonFile("appsettings.json");
+                    config.AddJsonFile("appsettings.Local.json", true);
 
                     if (args != null)
                     {
