@@ -57,7 +57,6 @@ namespace IotRouter
                                             null 
                                             : Activate<IProcessor>(processorConfigs[m.Processor.Name], m.Processor.Config, services),
                                     DestinationNames = m.Destinations
-                                        .Where(d => !destinationConfigs[d.Name].Disabled && !d.Disabled)
                                         .Select(d => Activate<IDestination>(destinationConfigs[d.Name], d.Config, services))
                                         .ToList()
                                 })
