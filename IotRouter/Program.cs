@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -20,6 +20,7 @@ namespace IotRouter
                 {
                     config.AddEnvironmentVariables();
                     config.AddJsonFile("appsettings.json");
+                    config.AddJsonFile("appsettings.Local.json", true);
 
                     if (args != null)
                     {
@@ -56,7 +57,6 @@ namespace IotRouter
                                             null 
                                             : Activate<IProcessor>(processorConfigs[m.Processor.Name], m.Processor.Config, services),
                                     DestinationNames = m.Destinations
-                                        .Where(d => !destinationConfigs[d.Name].Disabled && !d.Disabled)
                                         .Select(d => Activate<IDestination>(destinationConfigs[d.Name], d.Config, services))
                                         .ToList()
                                 })
