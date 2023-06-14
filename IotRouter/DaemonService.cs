@@ -12,19 +12,17 @@ namespace IotRouter
     public class DaemonService : IHostedService, IDisposable
     {
         private readonly ILogger _logger;
-        private readonly IOptions<Config> _config;
         private readonly IEnumerable<IListener> _listeners;
         private readonly IEnumerable<IParser> _parsers;
         private readonly IEnumerable<IProcessor> _processors;
         private readonly IEnumerable<IDestination> _destinations;
         private readonly IEnumerable<IRoute> _routes;
 
-        public DaemonService(ILogger<DaemonService> logger, IOptions<Config> config, IEnumerable<IListener> listeners,
+        public DaemonService(ILogger<DaemonService> logger, IEnumerable<IListener> listeners,
             IEnumerable<IParser> parsers, IEnumerable<IProcessor> processors,
             IEnumerable<IDestination> destinations, IEnumerable<IRoute> routes)
         {
             _logger = logger;
-            _config = config;
             _listeners = listeners;
             _parsers = parsers;
             _processors = processors;
@@ -37,9 +35,9 @@ namespace IotRouter
             _logger.LogInformation("Starting daemon");
 
             // Sanity checks
-            AssertUniqueNames<IListener>(_listeners, l => l.Name);
-            AssertUniqueNames<IParser>(_parsers, p => p.Name);
-            AssertUniqueNames<IDestination>(_destinations, s => s.Name);
+            AssertUniqueNames(_listeners, l => l.Name);
+            AssertUniqueNames(_parsers, p => p.Name);
+            AssertUniqueNames(_destinations, s => s.Name);
 
             // Wire Routes
             foreach (var route in _routes)
@@ -50,13 +48,13 @@ namespace IotRouter
                 var deviceMapping = route.DeviceMappings
                     .Select(d => new DeviceMapping()
                     {
-                        DevEUI = d.Key,
+                        DevEui = d.Key,
                         Processor = d.Value.ProcessorName == null ? null : _processors.Single(s => s.Name == d.Value.ProcessorName),
                         Destinations = d.Value.DestinationNames.Select(s1 => _destinations.Single(s2 => s2.Name == s1)).AsEnumerable()
                     })
-                    .ToDictionary(e => e.DevEUI, e => e);
+                    .ToDictionary(e => e.DevEui, e => e);
 
-                listener.MessageReceived += (s, e) => ListenerMessageReceived(listener, parser, deviceMapping, e.Topic, e.Payload);
+                listener.MessageReceived += (_, e) => ListenerMessageReceived(parser, deviceMapping, e.Payload);
             }
 
             await Task.WhenAll(_listeners.Select(l => l.StartAsync(cancellationToken)));
@@ -64,7 +62,7 @@ namespace IotRouter
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Stopping daemon.");
+            _logger.LogInformation("Stopping daemon");
 
             await Task.WhenAll(_listeners.Select(l => l.StopAsync(cancellationToken)));
         }
@@ -76,16 +74,19 @@ namespace IotRouter
 
         private void AssertUniqueNames<T>(IEnumerable<T> collection, Func<T, string> nameSelector)
         {
-            var nonUniqueNames = collection.GroupBy(nameSelector).Where(g => g.Count() > 1).Select(g => g.Key);
+            var nonUniqueNames = collection
+                .GroupBy(nameSelector)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
             if (nonUniqueNames.Any())
             {
                 throw new Exception($"Names in {typeof(T).Name} are not unique ({string.Join(", ", nonUniqueNames)})"); 
             }
         }
 
-        private Task ListenerMessageReceived(IListener listener, IParser parser, 
-            IDictionary<string, DeviceMapping> deviceMappings,
-            string topic, byte[] data)
+        private Task ListenerMessageReceived(IParser parser, 
+            IDictionary<string, DeviceMapping> deviceMappings, byte[] data)
         {
             ParsedData parsedData;
             try
@@ -98,8 +99,9 @@ namespace IotRouter
                 return Task.FromException(x);
             }
 
-            _logger.LogInformation($"DateTime = {parsedData.DateTime}");
-            _logger.LogInformation(string.Join(", ", parsedData.KeyValues.Select(kv => $"{kv.Key} = {kv.Value}")));
+            _logger.LogInformation("DateTime = {DateTime}, Values = {Values}", 
+                parsedData.DateTime,
+                string.Join(", ", parsedData.KeyValues.Select(kv => $"{kv.Key} = {kv.Value}")));
 
             return HandleMessage(deviceMappings, parsedData);
         }
@@ -107,15 +109,16 @@ namespace IotRouter
         private Task HandleMessage(IDictionary<string, DeviceMapping> deviceMappings,
             ParsedData parsedData)
         {
-            string devEUI = parsedData.DevEUI;
+            string devEui = parsedData.DevEUI;
 
-            if (deviceMappings.TryGetValue(devEUI, out DeviceMapping deviceMapping))
+            if (deviceMappings.TryGetValue(devEui, out DeviceMapping deviceMapping)
+                || deviceMappings.TryGetValue("*", out deviceMapping))
             {
                 return HandleMessage(deviceMapping, parsedData);
             }
             else
             {
-                _logger.LogError($"No DeviceMapping found for DevEUI={devEUI}");
+                _logger.LogError("No DeviceMapping found for DevEUI={DevEui}", devEui);
                 return Task.CompletedTask;
             }
         }
@@ -140,7 +143,7 @@ namespace IotRouter
                 }
                 catch (Exception x)
                 {
-                    _logger.LogError(x, $"Destination {s.Name} failed");
+                    _logger.LogError(x, "Destination {Destination} failed", s.Name);
                     throw;
                 }
             }));
@@ -148,9 +151,9 @@ namespace IotRouter
 
         class DeviceMapping
         {
-            public string DevEUI { get; set; }
-            public IProcessor Processor { get; set; }
-            public IEnumerable<IDestination> Destinations { get; set; }
+            public string DevEui { get; init; }
+            public IProcessor Processor { get; init; }
+            public IEnumerable<IDestination> Destinations { get; init; }
         }
     }
 }

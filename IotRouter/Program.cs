@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -57,6 +57,7 @@ namespace IotRouter
                                             null 
                                             : Activate<IProcessor>(processorConfigs[m.Processor.Name], m.Processor.Config, services),
                                     DestinationNames = m.Destinations
+                                        .Where(d => !destinationConfigs[d.Name].Disabled && !d.Disabled)
                                         .Select(d => Activate<IDestination>(destinationConfigs[d.Name], d.Config, services))
                                         .ToList()
                                 })
@@ -97,6 +98,10 @@ namespace IotRouter
             
             IConfigurationSection mergedConfig = new MergedConfigurationSection(instanceConfig, typeConfig.Config);            
             Type type = Type.GetType(typeConfig.Type);
+            if (type == null)
+            {
+                throw new Exception($"Unable to activate type '{typeConfig.Type}'");
+            }
             services.AddSingleton<IService>(s =>
                 (IService)Activator.CreateInstance(type, 
                     s.GetRequiredService<IServiceProvider>(),
