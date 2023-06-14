@@ -60,7 +60,11 @@ namespace IotRouter
                     .WithCredentials(Username, Password)
                     .WithTcpServer(Uri, Port)
                     .WithCleanSession()
-                    .WithTls();
+                    .WithTls(o => 
+                    {
+                        o.IgnoreCertificateRevocationErrors = true;
+                        o.IgnoreCertificateChainErrors = true;
+                    });
 
                 var options = messageBuilder.Build();
                 await _mqttClient.ConnectAsync(options);
