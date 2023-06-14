@@ -8,100 +8,105 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 
-namespace IotRouter
+namespace IotRouter;
+
+public class MqttListener : IListener
 {
-    public class MqttListener : IListener
+    private readonly ILogger<MqttListener> _logger;
+    IMqttClient _mqttClient;
+    private bool _disposedValue;
+    private bool _disconnecting;
+
+    public string Name { get; }
+    private readonly string _server;
+    private readonly string _username;
+    private readonly string _password;
+    private readonly string _topic;
+    private readonly string _displayName;
+
+    public event MessageReceivedHandler MessageReceived;
+
+    public MqttListener(IServiceProvider serviceProvider, IConfigurationSection config, string name)
     {
-        ILogger<MqttListener> _logger;
-        IMqttClient _mqttClient;
-        private bool disposedValue;
-        private bool disconnecting;
+        _logger = serviceProvider.GetService<ILogger<MqttListener>>();
+        Name = name;
+        _server = config.GetValue<string>("Server");
+        _username = config.GetValue<string>("Username");
+        _password = config.GetValue<string>("Password");
+        _topic = config.GetValue<string>("Topic");
+        _displayName = $"{_server}-{_username}";
+    }
 
-        public string Name { get; private set; }
-        public string Server { get; private set; }
-        public string Username { get; private set; }
-        public string Password { get; private set; }
-        public string Topic { get; private set; }
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        _disconnecting = false;
+        MqttFactory factory = new MqttFactory();
+        _mqttClient = factory.CreateMqttClient();
 
-        public event MessageReceivedHandler MessageReceived;
+        var options = new MqttClientOptionsBuilder()
+            .WithClientId("IotRouter")
+            .WithTcpServer(_server)
+            .WithCredentials(_username, _password)
+            .WithTls()
+            .WithCleanSession()
+            .Build();
 
-        public MqttListener(IServiceProvider serviceProvider, IConfigurationSection config, string name)
+        _mqttClient.ConnectedAsync += (async _ =>
         {
-            _logger = serviceProvider.GetService<ILogger<MqttListener>>();
-            Name = name;
-            Server = config.GetValue<string>("Server");
-            Username = config.GetValue<string>("Username");
-            Password = config.GetValue<string>("Password");
-            Topic = config.GetValue<string>("Topic");
-        }
+            _logger.LogInformation("MqttListener {Name}: Connected", _displayName);
+            await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic(_topic).Build());
+            _logger.LogInformation("MqttListener {Name}: Subscribed", _displayName);
+        });
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        _mqttClient.DisconnectedAsync += (async _ =>
         {
-            disconnecting = false;
-            MqttFactory factory = new MqttFactory();
-            _mqttClient = factory.CreateMqttClient();
-
-            var options = new MqttClientOptionsBuilder()
-                .WithClientId("IotRouter")
-                .WithTcpServer(Server)
-                .WithCredentials(Username, Password)
-                .WithTls()
-                .WithCleanSession()
-                .Build();
-
-            _mqttClient.ConnectedAsync += (async e =>
-            {
-                _logger.LogInformation($"MqttListener {Name}: Connected");
-                await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic(Topic).Build());
-                _logger.LogInformation($"MqttListener {Name}: Subscribed");
-            });
-
-            _mqttClient.DisconnectedAsync += (async e =>
-            {
-                if (!disconnecting) {
-                    _logger.LogWarning($"MqttListener {Name}: Disconnected, trying to reconnect");
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                    await _mqttClient.ConnectAsync(options, CancellationToken.None);
-                }
-            });
-
-            _mqttClient.ApplicationMessageReceivedAsync += (async e =>
-            {
-                _logger.LogInformation($"MqttListener {Name}: Message received\n"
-                    + $"+ Topic = {e.ApplicationMessage.Topic}\n"
-                    + $"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}\n"
-                    + $"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}\n"
-                    + $"+ Retain = {e.ApplicationMessage.Retain}");
-                await MessageReceived?.Invoke(this, new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload));
-            });
-
-            await _mqttClient.ConnectAsync(options, cancellationToken);
-        }
-
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            disconnecting = true;
-            await _mqttClient.DisconnectAsync();
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    _mqttClient?.Dispose();
-                }
-
-                disposedValue = true;
+            if (!_disconnecting) {
+                _logger.LogWarning("MqttListener {Name}: Disconnected, trying to reconnect", _displayName);
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                await _mqttClient.ConnectAsync(options, CancellationToken.None);
             }
-        }
+        });
 
-        public void Dispose()
+        _mqttClient.ApplicationMessageReceivedAsync += (async e =>
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            System.GC.SuppressFinalize(this);
+            _logger.LogInformation("MqttListener {Name}: Message received\n"
+                                   + "+ Topic = {Topic}\n"
+                                   + "+ Payload = {Payload}\n"
+                                   + "+ QoS = {Qos}\n"
+                                   + "+ Retain = {Retain}", 
+                _displayName, e.ApplicationMessage.Topic, Encoding.UTF8.GetString(e.ApplicationMessage.Payload),
+                e.ApplicationMessage.QualityOfServiceLevel, e.ApplicationMessage.Retain);
+            
+            if (MessageReceived != null)
+                await MessageReceived.Invoke(this, new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload));
+        });
+
+        await _mqttClient.ConnectAsync(options, cancellationToken);
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _disconnecting = true;
+        await _mqttClient.DisconnectAsync();
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                _mqttClient?.Dispose();
+            }
+
+            _disposedValue = true;
         }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
