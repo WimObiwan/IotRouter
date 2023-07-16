@@ -9,7 +9,7 @@ namespace IotRouter
 {
     public abstract class Parser : IParser
     {
-        ILogger _logger;
+        protected ILogger _logger;
 
         public string Name { get; private set; }
 
@@ -19,12 +19,6 @@ namespace IotRouter
             Name = name;
         }
 
-        public ParsedData Parse(byte[] data)
-        {
-            ParserData parserData = new ParserData(data);
-            return Parse(parserData);
-        }
- 
-        protected abstract ParsedData Parse(ParserData parserData);
-   }
+        public abstract ParsedData Parse(byte[] data);
+    }
 }

@@ -14,13 +14,23 @@ public class ParsedData
             Value = value;
         }
 
-        public KeyValue(string key, decimal value) 
-        : this(key, (object)value)
+        public KeyValue(string key, string value) 
+            : this(key, (object)value)
+        {
+        }
+
+        public KeyValue(string key, int value) 
+            : this(key, (object)value)
         {
         }
 
         public KeyValue(string key, double value) 
         : this(key, (object)value)
+        {
+        }
+
+        public KeyValue(string key, decimal value) 
+            : this(key, (object)value)
         {
         }
     }

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace IotRouter
 {
-    public class PayloadParser : Parser
+    public class PayloadParser : TheThingsNetworkParser
     {
         public PayloadParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)
             : base(serviceProvider.GetService<ILogger<PayloadParser>>(), name)
