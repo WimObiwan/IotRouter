@@ -6,10 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace IotRouter.Parsers.Dragino;
 
-public class LDDS75 : TheThingsNetworkParser
+public class WorxCloud : Parser
 {
-    public LDDS75(IServiceProvider serviceProvider, IConfigurationSection config, string name)
-        : base(serviceProvider.GetService<ILogger<LHT65>>(), name)
+    public WorxCloud(IServiceProvider serviceProvider, IConfigurationSection config, string name)
+        : base(serviceProvider.GetService<ILogger<WorxCloud>>(), name)
     {
     }
 

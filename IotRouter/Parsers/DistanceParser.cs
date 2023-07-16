@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IotRouter
 {
-    public class DistanceParser : Parser
+    public class DistanceParser : TheThingsNetworkParser
     {
 
         public DistanceParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IotRouter.Parsers.Dragino
 {
-    public class LHT65 : Parser
+    public class LHT65 : TheThingsNetworkParser
     {
         public LHT65(IServiceProvider serviceProvider, IConfigurationSection config, string name)
             : base(serviceProvider.GetService<ILogger<LHT65>>(), name)

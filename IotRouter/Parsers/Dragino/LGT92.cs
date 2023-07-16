@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace IotRouter.Parsers.Dragino
 {
-    public class LGT92 : Parser
+    public class LGT92 : TheThingsNetworkParser
     {
         public LGT92(IServiceProvider serviceProvider, IConfigurationSection config, string name)
             : base(serviceProvider.GetService<ILogger<LGT92>>(), name)
