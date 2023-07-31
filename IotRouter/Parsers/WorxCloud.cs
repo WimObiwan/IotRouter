@@ -71,6 +71,7 @@ public class WorxCloud : Parser
                 CuttingEdge = 32,
                 SearchingArea = 33,
                 Pause = 34,
+                __UpgradingFirmware__ = 102,
                 __Correcting__ = 103,
                 __GoingHome__ = 104
             }
