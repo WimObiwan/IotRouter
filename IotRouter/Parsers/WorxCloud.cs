@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -25,8 +26,17 @@ public class WorxCloud : Parser
         string devEUI = packet.dat.uuid; // parserData.GetDevEUI();
         DateTime dateTime = packet.dat.tm; //parserData.GetTime();
 
+        var tomorrowDay = DateTime.Now.AddDays(1).Date.DayOfWeek;
+        var slot = packet.cfg.sc.slots.FirstOrDefault(s => s.d == (int)tomorrowDay);
+        TimeSpan tomorrowStartTime;
+        if (slot != null)
+            tomorrowStartTime = TimeSpan.FromMinutes(slot.s);
+        else
+            tomorrowStartTime = TimeSpan.Zero;
+
         var keyValues = new List<ParsedData.KeyValue>()
         {
+            new("TomorrowStartTime", (int)tomorrowStartTime.TotalSeconds),
             new("Status", (int)packet.dat.ls),
             new("StatusText", packet.dat.ls.ToString()),
             new("Error", (int)packet.dat.le),
@@ -49,6 +59,23 @@ public class WorxCloud : Parser
 
     private class Packet
     {
+        public class Config
+        {
+            public class Sc
+            {
+                public class Slot
+                {
+                    public int d { get; init; }
+                    public int s { get; init; }
+                    public int t { get; init; }
+                }
+                
+                public Slot[] slots { get; init; }
+            }
+
+            public Sc sc { get; init; }
+    }
+        
         public class Data
         {
             public enum Status
@@ -162,6 +189,7 @@ public class WorxCloud : Parser
             public Head head { get; init; }
         }
 
+        public Config cfg { get; init; }
         public Data dat { get; init; }
     }
 }

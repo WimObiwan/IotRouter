@@ -1,0 +1,19 @@
+{
+  "reports": [
+    {
+      "serialNumber": "IMEI:867787054545078",
+      "timestamp": 1690801839203,
+      "subscriptionId": "aa3d76d8-039d-4e0e-99b5-a0f09a42c383",
+      "resourcePath": "uplinkMsg/0/data",
+      "value": "f86778705454507800980cfe0a0100030764d3456e012664c8235d012564c81fd9012564c81c55012564c818d1012564c8154d012564c811c9012564c80e45012664c80ac1",
+      "customAttributes": {
+        "device_protocol": "udp"
+      }
+    }
+  ],
+  "registrations": [],
+  "deregistrations": [],
+  "updates": [],
+  "expirations": [],
+  "responses": []
+}
