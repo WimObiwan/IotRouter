@@ -43,7 +43,7 @@ public class WorxCloudListener : IListener
         _password = config.GetValue<string>("Password");
 
         // Kress
-        _loginUrl = new Uri("https://id.eu.kress.com/");
+        _loginUrl = new Uri("https://id.kress.com/");
         _apiUrl = new Uri("https://api.kress-robotik.com/api/v2/");
         _clientId = "931d4bc4-3192-405a-be78-98e43486dc59";
     }
