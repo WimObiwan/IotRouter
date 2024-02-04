@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -12,6 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using IotRouter.Util;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -29,8 +31,9 @@ public class WorxCloudListener : IListener
     private readonly Uri _loginUrl;
     private readonly string _password;
     private readonly string _username;
-    private bool _disconnecting;
+    private readonly CancellationTokenSource _reconnectCancellationTokenSource = new(); 
     private bool _disposedValue;
+    private int _trial = 0;
 
     private IMqttClient _mqttClient;
 
@@ -54,49 +57,35 @@ public class WorxCloudListener : IListener
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        var factory = new MqttFactory();
+        _mqttClient = factory.CreateMqttClient();
+
         try
         {
             await StartAsyncWithRetry(cancellationToken);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "StartAsync failed");
+            _logger.LogError(e, "StartAsync failed, schedule task to retry connect");
+            Reconnect(_reconnectCancellationTokenSource.Token).Forget();
         }
     }
 
     public async Task StartAsyncWithRetry(CancellationToken cancellationToken)
     {
-        var mowerMqttInfo = await GetMowerInfo();
-
-        _disconnecting = false;
-        var factory = new MqttFactory();
-        _mqttClient = factory.CreateMqttClient();
-
+        var mowerMqttInfo = await GetMowerInfo(cancellationToken);
+        
         _mqttClient.ConnectedAsync += async _ =>
         {
             _logger.LogInformation("MqttListener {Name}: Connected", Name);
-            await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic(mowerMqttInfo.Topic).Build());
+            await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic(mowerMqttInfo.Topic).Build(), _reconnectCancellationTokenSource.Token);
             _logger.LogInformation("MqttListener {Name}: Subscribed", Name);
+            _trial = 0;
         };
 
         _mqttClient.DisconnectedAsync += async _ =>
         {
-            while (!_disconnecting)
-                try
-                {
-                    _logger.LogWarning("MqttListener {Name}: Disconnected, trying to reconnect", Name);
-                    await Wait(TimeSpan.FromSeconds(5));
-
-                    var mowerMqttInfo2 = await GetMowerInfo();
-
-                    await _mqttClient.ConnectAsync(GetMqttOptions(mowerMqttInfo2), CancellationToken.None);
-                    return;
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Connecting to Kress MQTT failed.  Waiting 10 minutes");
-                    await Wait(TimeSpan.FromMinutes(10));
-                }
+            await Reconnect(_reconnectCancellationTokenSource.Token);
         };
 
 
@@ -118,9 +107,50 @@ public class WorxCloudListener : IListener
         await _mqttClient.ConnectAsync(GetMqttOptions(mowerMqttInfo), cancellationToken);
     }
 
+    private async Task Reconnect(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            try
+            {
+                _logger.LogWarning("MqttListener {Name}: Disconnected, trying to reconnect", Name);
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+
+                var mowerMqttInfo2 = await GetMowerInfo(cancellationToken);
+
+                await _mqttClient.ConnectAsync(GetMqttOptions(mowerMqttInfo2), cancellationToken);
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Connecting to Kress MQTT canceled");
+                break;
+            }
+            catch (Exception e)
+            {
+                if (_trial == 0)
+                    _trial = 1;
+                else
+                    _trial *= 2;
+                int minutes = 10 * _trial;
+                
+                _logger.LogWarning(e, "Connecting to Kress MQTT failed.  Waiting {Minutes} minutes", minutes);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(minutes), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("Connecting to Kress MQTT canceled");
+                    break;
+                }
+            }
+        }
+    }
+
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _disconnecting = true;
+        _reconnectCancellationTokenSource.Cancel();
         await _mqttClient.DisconnectAsync();
     }
 
@@ -129,21 +159,6 @@ public class WorxCloudListener : IListener
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    private async Task Wait(TimeSpan duration)
-    {
-        var slice = TimeSpan.FromSeconds(1);
-        var stopwatch = Stopwatch.StartNew();
-        while (!_disconnecting)
-        {
-            var waitDuration = duration - stopwatch.Elapsed;
-            if (waitDuration <= TimeSpan.Zero)
-                return;
-            if (waitDuration > slice)
-                waitDuration = slice;
-            await Task.Delay(waitDuration);
-        }
     }
 
     protected virtual void Dispose(bool disposing)
@@ -156,7 +171,7 @@ public class WorxCloudListener : IListener
         }
     }
 
-    private async Task<string> LogInToWorxCloud()
+    private async Task<string> LogInToWorxCloud(CancellationToken cancellationToken)
     {
         var httpClient = _httpClientFactory.CreateClient();
 
@@ -172,16 +187,28 @@ public class WorxCloudListener : IListener
                 password = _password,
                 scope = "*",
                 grant_type = "password"
-            });
-        result.EnsureSuccessStatusCode();
+            }, cancellationToken);
+        try
+        {
+            result.EnsureSuccessStatusCode();
+        }
+        catch
+        {
+            string headers = string.Join("; ", 
+                result.Headers.SelectMany(h => h.Value.Select(v => $"{h.Key}={v}")));
+            string content = await result.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Kress login failed: {StatusCode} - {ReasonPhrase}\n{Headers}\n{Content}", (int)result.StatusCode,
+                result.ReasonPhrase, headers, content);
+            throw;
+        }
 
-        var resultBody = await result.Content.ReadFromJsonAsync<TokenResult>();
+        var resultBody = await result.Content.ReadFromJsonAsync<TokenResult>(cancellationToken: cancellationToken);
         return resultBody.access_token;
     }
 
-    private async Task<MowerMqttInfo> GetMowerInfo()
+    private async Task<MowerMqttInfo> GetMowerInfo(CancellationToken cancellationToken)
     {
-        var accessToken = await LogInToWorxCloud();
+        var accessToken = await LogInToWorxCloud(cancellationToken);
 
         // $url = "https://$apiUrl/api/v2/product-items?status=1&gps_status=1"
         // $url = "https://$apiUrl/api/v2/product-items/$sn/?status=1&gps_status=1"
@@ -193,10 +220,10 @@ public class WorxCloudListener : IListener
         request.Headers.AcceptLanguage.Add(new StringWithQualityHeaderValue("de-de"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var result = await httpClient.SendAsync(request);
+        var result = await httpClient.SendAsync(request, cancellationToken);
         result.EnsureSuccessStatusCode();
 
-        var mowers = await result.Content.ReadFromJsonAsync<MowerResult[]>();
+        var mowers = await result.Content.ReadFromJsonAsync<MowerResult[]>(cancellationToken: cancellationToken);
         var mower = mowers[0];
         var uuid = mower.uuid;
         var mqttEndpoint = mower.mqtt_endpoint;
