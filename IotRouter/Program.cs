@@ -44,12 +44,23 @@ namespace IotRouter
 
                     foreach (var routeConfig in configSection.GetSection("Routes").GetChildren().Select(m => m.Get<RouteConfig>()))
                     {
-                        if (routeConfig.Disabled) 
+                        if (routeConfig.Disabled)
                             continue;
-                        string listenerName = Activate<IListener>(listenerConfigs[routeConfig.Listener.Name], routeConfig.Listener.Config, services);
-                        string parserName = Activate<IParser>(parserConfigs[routeConfig.Parser.Name], routeConfig.Parser.Config, services);
+                        
+                        // Disable all routes with a disabled listener
+                        var listenerConfig = listenerConfigs[routeConfig.Listener.Name];
+                        if (listenerConfig.Disabled)
+                            continue;
+
+                        // Disable all routes with a disabled parser
+                        var parserConfig = parserConfigs[routeConfig.Parser.Name];
+                        if (parserConfig.Disabled)
+                            continue;
+                        
+                        string listenerName = Activate<IListener>(listenerConfig, routeConfig.Listener.Config, services);
+                        string parserName = Activate<IParser>(parserConfig, routeConfig.Parser.Config, services);
                         IDictionary<string, DeviceMapping> deviceMappings = routeConfig.DeviceMapping
-                            .Select(m => new DeviceMapping() 
+                            .Select(m => new DeviceMapping 
                                 {
                                     DevEUI = m.DevEUI,
                                     ProcessorName = 
@@ -57,6 +68,7 @@ namespace IotRouter
                                             null 
                                             : Activate<IProcessor>(processorConfigs[m.Processor.Name], m.Processor.Config, services),
                                     DestinationNames = m.Destinations
+                                            // Disable all destinations with disabled destination or disabled device mapping
                                         .Where(d => !destinationConfigs[d.Name].Disabled && !d.Disabled)
                                         .Select(d => Activate<IDestination>(destinationConfigs[d.Name], d.Config, services))
                                         .ToList()
