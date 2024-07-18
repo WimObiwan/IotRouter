@@ -42,7 +42,7 @@ namespace IotRouter
             if (distance == 0)
             {
                 _logger.LogWarning("Ignoring distance=0");
-            return Task.FromResult(true);
+                return Task.FromResult(true);
             }
             
             parsedData.KeyValues.Add(new ParsedData.KeyValue("distance", distance));

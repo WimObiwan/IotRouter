@@ -47,7 +47,10 @@ namespace IotRouter
         
         public async Task SendAsync(ParsedData parsedData)
         {
-            var keyValues = parsedData.KeyValues;
+            // TODO: Add to config!
+            var filter = new string[] { "BatV", "RSSI", "distance" };
+            
+            var keyValues = parsedData.KeyValues.Where(kv => filter.Contains(kv.Key));
             _logger.LogInformation($"{Measurement}, {parsedData.DateTime}, {keyValues.Count()}");
 
             // var point = PointData.Measurement(Measurement);
@@ -82,7 +85,7 @@ namespace IotRouter
                 info.Timestamp = parsedData.DateTime.Value;
             if (!string.IsNullOrEmpty(parsedData.DevEUI))
                 info.Tags.Add("DevEUI", parsedData.DevEUI);
-            foreach (var keyValue in parsedData.KeyValues) 
+            foreach (var keyValue in keyValues) 
             {
                 info.Fields.Add(keyValue.Key, keyValue.Value);
             }

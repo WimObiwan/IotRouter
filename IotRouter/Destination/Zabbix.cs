@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using IotRouter.Util;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,7 +38,7 @@ public class Zabbix : IDestination
     public async Task SendAsync(ParsedData parsedData)
     {
         var keyValues = parsedData.KeyValues;
-        string host2 = Replace(_host, parsedData);
+        string host2 = StringPlaceholderReplacer.Replace(_host, parsedData);
         _logger.LogInformation("Host = {Host}/{Host2}, DateTime = {DateTime}, Data = {Data}",
             _host, host2, parsedData.DateTime, keyValues.Count);
 
@@ -67,20 +68,5 @@ public class Zabbix : IDestination
         {
             throw new Exception($"Not all Zabbix items were successfully processed ({response.Info})");
         }
-    }
-
-    private string Replace(string value, ParsedData parsedData)
-    {
-        return
-            Regex.Replace(value, @"{([^}]+)}",
-                m =>
-                {
-                    if (m.Groups[1].Value == "DevEUI")
-                        return parsedData.DevEUI;
-                    var replaceValue = parsedData.KeyValues.FirstOrDefault(kv => kv.Key == m.Groups[1].Value)?.Value;
-                    if (replaceValue == null)
-                        return "Unknown";
-                    return GetValue(replaceValue);
-                });
     }
 }

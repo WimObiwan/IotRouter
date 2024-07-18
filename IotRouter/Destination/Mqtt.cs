@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IotRouter.Util;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -80,9 +81,10 @@ namespace IotRouter
             //_logger.LogInformation($"{Measurement}, {parsedData.DateTime}, {keyValues.Count()}");
 
             var payload = System.Text.Json.JsonSerializer.Serialize(mqttData);
-
+            var topic = StringPlaceholderReplacer.Replace(Topic, parsedData);
+            
             var message = new MqttApplicationMessageBuilder()
-                    .WithTopic(Topic)
+                    .WithTopic(topic)
                     .WithPayload(payload)
                     //.WithExactlyOnceQoS()
                     .WithRetainFlag()

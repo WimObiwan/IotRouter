@@ -52,7 +52,11 @@ public class IotCreators : Parser
         ushort distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[15..17]));
         uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[17..21]));
 
-        var dateTime = DateTime.UnixEpoch.AddSeconds(timestamp);
+        DateTime dateTime;
+        if (timestamp != 0) 
+            dateTime = DateTime.UnixEpoch.AddSeconds(timestamp);
+        else
+            dateTime = DateTime.UtcNow;
         
         var keyValues = new List<ParsedData.KeyValue>()
         {
