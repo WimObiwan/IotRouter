@@ -8,6 +8,7 @@ namespace IotRouter
     public class ParserData
     {
         private JsonDocument _document;
+        private JsonElement _payloadElement;
         private JsonElement _payloadFieldsElement;
         private JsonElement _rootElement;
         private JsonElement _uplinkMessageElement;
@@ -19,7 +20,8 @@ namespace IotRouter
             _document = JsonDocument.Parse(Encoding.UTF8.GetString(data));
             _rootElement = _document.RootElement;
             _uplinkMessageElement = _rootElement.GetProperty("uplink_message");
-            _payloadFieldsElement = _uplinkMessageElement.GetProperty("decoded_payload"); 
+            _payloadElement = _uplinkMessageElement.GetProperty("frm_payload");
+            _payloadFieldsElement = _uplinkMessageElement.GetProperty("decoded_payload");
             _metadataElement = _uplinkMessageElement.GetProperty("rx_metadata"); 
             //_gatewayElements = _metadataElement.GetProperty("gateways");
         }
@@ -48,6 +50,11 @@ namespace IotRouter
                 parserValue = null;
                 return false;
             }
+        }
+
+        public byte[] GetPayload()
+        {
+            return Convert.FromBase64String(ParserValue.AsString(_payloadElement));
         }
 
         public ParserValue GetPayloadValue(string key)

@@ -18,10 +18,20 @@ public class LDDS75 : TheThingsNetworkParser
         string devEUI = parserData.GetDevEUI();
         DateTime dateTime = parserData.GetTime();
 
+        byte[] bytes = parserData.GetPayload();
+        int value;
+        
+        value = (bytes[0] << 8 | bytes[1]) & 0x3FFF;
+        decimal batV = value / 1000m;
+        // decimal batV_Old = parserData.GetPayloadValue("batV").AsDecimal();
+
+        decimal distanceMm = bytes[2] << 8 | bytes[3];
+        // decimal distanceMm_Old = parserData.GetPayloadValue("distanceMm").AsDecimal();
+
         var keyValues = new List<ParsedData.KeyValue>()
         {
-            new("batV", parserData.GetPayloadValue("batV").AsDecimal()),
-            new("distance", parserData.GetPayloadValue("distanceMm").AsDecimal()),
+            new("batV", batV),
+            new("distance", distanceMm),
             new("RSSI", parserData.GetRSSI()),                    
         };
 
