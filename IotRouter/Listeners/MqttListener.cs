@@ -50,7 +50,8 @@ public class MqttListener : IListener
             .WithClientId("IotRouter")
             .WithTcpServer(_server)
             .WithCredentials(_username, _password)
-            .WithTls()
+            .WithTlsOptions(o => o.
+                UseTls())
             .WithCleanSession()
             .Build();
 
@@ -90,11 +91,11 @@ public class MqttListener : IListener
                                    + "+ Payload = {Payload}\n"
                                    + "+ QoS = {Qos}\n"
                                    + "+ Retain = {Retain}", 
-                _displayName, e.ApplicationMessage.Topic, Encoding.UTF8.GetString(e.ApplicationMessage.Payload),
+                _displayName, e.ApplicationMessage.Topic, Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment),
                 e.ApplicationMessage.QualityOfServiceLevel, e.ApplicationMessage.Retain);
             
             if (MessageReceived != null)
-                await MessageReceived.Invoke(this, new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload));
+                await MessageReceived.Invoke(this, new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.PayloadSegment.ToArray()));
         });
 
         await _mqttClient.ConnectAsync(_mqttOptions, cancellationToken);

@@ -96,12 +96,12 @@ public class WorxCloudListener : IListener
                                    + "+ Payload = {Payload}\n"
                                    + "+ QoS = {Qos}\n"
                                    + "+ Retain = {Retain}",
-                Name, e.ApplicationMessage.Topic, Encoding.UTF8.GetString(e.ApplicationMessage.Payload),
+                Name, e.ApplicationMessage.Topic, Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment),
                 e.ApplicationMessage.QualityOfServiceLevel, e.ApplicationMessage.Retain);
 
             if (MessageReceived != null)
                 await MessageReceived.Invoke(this,
-                    new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload));
+                    new MessageReceivedEventArgs(e.ApplicationMessage.Topic, e.ApplicationMessage.PayloadSegment.ToArray()));
         };
 
         await _mqttClient.ConnectAsync(GetMqttOptions(mowerMqttInfo), cancellationToken);
@@ -265,13 +265,11 @@ public class WorxCloudListener : IListener
             .WithClientId(mowerMqttInfo.ClientId)
             .WithTcpServer(mowerMqttInfo.Endpoint, 443)
             .WithCredentials(mowerMqttInfo.UserName, mowerMqttInfo.Password)
-            .WithTls(
-                new MqttClientOptionsBuilderTlsParameters
-                {
-                    UseTls = true,
-                    SslProtocol = SslProtocols.Tls12,
-                    ApplicationProtocols = new List<SslApplicationProtocol> { new("mqtt") },
-                    CertificateValidationHandler = certContext =>
+            .WithTlsOptions(o => o
+                .UseTls()
+                .WithSslProtocols(SslProtocols.Tls12)
+                .WithApplicationProtocols(new List<SslApplicationProtocol> { new("mqtt") })
+                .WithCertificateValidationHandler(certContext =>
                     {
                         var chain = new X509Chain();
                         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
@@ -287,7 +285,7 @@ public class WorxCloudListener : IListener
 
                         return chain.Build(x5092);
                     }
-                }
+                )
             )
             .WithCleanSession()
             .Build();

@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/IotRouter/bin/Debug/net6.0/IotRouter.dll",
+            "program": "${workspaceFolder}/IotRouter/bin/Debug/net8.0/IotRouter.dll",
             "args": [],
             "cwd": "${workspaceFolder}/IotRouter",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
