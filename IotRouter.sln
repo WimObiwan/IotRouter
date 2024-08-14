@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IotRouter", "IotRouter\IotR
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IotWebhookBridge", "IotWebhookBridge\IotWebhookBridge.csproj", "{1643741E-FFB8-4E43-93B1-E046A3AD98E6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IotRouterTests", "IotRouterTests\IotRouterTests.csproj", "{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,5 +46,17 @@ Global
 		{1643741E-FFB8-4E43-93B1-E046A3AD98E6}.Release|x64.Build.0 = Release|Any CPU
 		{1643741E-FFB8-4E43-93B1-E046A3AD98E6}.Release|x86.ActiveCfg = Release|Any CPU
 		{1643741E-FFB8-4E43-93B1-E046A3AD98E6}.Release|x86.Build.0 = Release|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Debug|x64.Build.0 = Debug|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Debug|x86.Build.0 = Debug|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Release|x64.ActiveCfg = Release|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Release|x64.Build.0 = Release|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Release|x86.ActiveCfg = Release|Any CPU
+		{175A1646-0AB7-4AA0-BAA5-740D2E6F6DC0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
