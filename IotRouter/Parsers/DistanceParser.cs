@@ -23,18 +23,17 @@ namespace IotRouter
             int value;
 
             value = bytes[0] + ((bytes[1] & 0x1F) << 8);
-            int distance = value;
-            decimal distance_Old = parserData.GetPayloadValue("distance").AsDecimal();
+            decimal distance = value;
+            // decimal distance_Old = parserData.GetPayloadValue("distance").AsDecimal();
 
             //var tries = bytes[2];
             value = bytes[3] + (((bytes[1] & 0xC0) >> 6) << 8);
             decimal humidity = Math.Round(value / 10m, 1);
-            decimal humidity_Old = parserData.GetPayloadValue("humid").AsDecimal();
+            // decimal humidity_Old = parserData.GetPayloadValue("humid").AsDecimal();
 
             value = bytes[4] + (((bytes[1] & 0x20) >> 5) << 8);
             decimal temperature = Math.Round(value / 10m, 1);
-            decimal temperature_Old = parserData.GetPayloadValue("temp").AsDecimal();
-
+            // decimal temperature_Old = parserData.GetPayloadValue("temp").AsDecimal();
 
             var keyValues = new List<ParsedData.KeyValue>()
             {
