@@ -9,7 +9,7 @@ namespace IotRouter.Parsers.Dragino;
 public class LDDS75 : TheThingsNetworkParser
 {
     public LDDS75(IServiceProvider serviceProvider, IConfigurationSection config, string name)
-        : base(serviceProvider.GetService<ILogger<LHT65>>(), name)
+        : base(serviceProvider.GetService<ILogger<LDDS75>>(), name)
     {
     }
 
