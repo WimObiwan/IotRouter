@@ -128,15 +128,26 @@ namespace IotRouter
         {
             if (deviceMapping.Processor != null)
             {
-                bool continueProcessing = await deviceMapping.Processor.Process(parsedData);
-                if (!continueProcessing)
+                try
                 {
-                    _logger.LogWarning($"Filtered by processor");
+                    bool continueProcessing = await deviceMapping.Processor.Process(parsedData);
+                    if (!continueProcessing)
+                    {
+                        _logger.LogWarning($"Filtered by processor");
+                    }
+                }
+                catch (Exception x)
+                {
+                    _logger.LogError(x, "Processor failed");
+                    throw;
                 }
             }
 
+            _logger.LogWarning("Device mapping has {DestinationCount} destinations", deviceMapping.Destinations.Count());
+
             await Task.WhenAll(deviceMapping.Destinations.Select(async (s) => 
             {
+                _logger.LogWarning("Running {Destination}", s.Name);
                 try
                 {
                     await s.SendAsync(parsedData);
