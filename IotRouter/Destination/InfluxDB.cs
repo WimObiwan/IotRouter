@@ -48,7 +48,7 @@ namespace IotRouter
         public async Task SendAsync(ParsedData parsedData)
         {
             // TODO: Add to config!
-            var filter = new string[] { "BatV", "RSSI", "distance" };
+            var filter = new string[] { "batV", "RSSI", "distance" };
             
             var keyValues = parsedData.KeyValues.Where(kv => filter.Contains(kv.Key));
             _logger.LogInformation($"{Measurement}, {parsedData.DateTime}, {keyValues.Count()}");
