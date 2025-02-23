@@ -1,5 +1,5 @@
 # Usage:
-#   ./scripts/deploy.sh "net6.0" "user@server.domain.tld" "/opt/IotRouter"
+#   ./scripts/deploy.sh "net8.0" "user@server.domain.tld" "/opt/IotRouter" "iotrouter"
 
 export RELEASE=$1
 export TARGET_SERVER=$2
