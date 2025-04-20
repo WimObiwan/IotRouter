@@ -72,6 +72,11 @@ namespace IotRouter
             return ParserValue.AsString(_rootElement.GetProperty("end_device_ids").GetProperty("dev_eui"));
         }
 
+        public int GetFPort()
+        {
+            return ParserValue.AsInt(_uplinkMessageElement.GetProperty("f_port"));
+        }
+
         public decimal GetRSSI()
         {
             //return _gatewayElements.EnumerateArray().Max(g => ParserValue.AsDecimal(g.GetProperty("rssi")));

@@ -17,6 +17,7 @@ namespace IotRouter.Parsers.Dragino
         protected override ParsedData Parse(ParserData parserData)
         {
             string devEUI = parserData.GetDevEUI();
+            int fPort = parserData.GetFPort();
             DateTime dateTime = parserData.GetTime();
 
             byte[] bytes = parserData.GetPayload();
@@ -33,7 +34,7 @@ namespace IotRouter.Parsers.Dragino
                 new ParsedData.KeyValue("RSSI", parserData.GetRSSI()),
             };
 
-            return new ParsedData(devEUI, dateTime, keyValues);
+            return new ParsedData(devEUI, fPort, dateTime, keyValues);
         }
     }
 }

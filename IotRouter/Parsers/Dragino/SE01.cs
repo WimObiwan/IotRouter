@@ -16,6 +16,7 @@ public class SE01 : TheThingsNetworkParser
     protected override ParsedData Parse(ParserData parserData)
     {
         string devEUI = parserData.GetDevEUI();
+        int fPort = parserData.GetFPort();
         DateTime dateTime = parserData.GetTime();
 
         byte[] bytes = parserData.GetPayload();
@@ -46,6 +47,6 @@ public class SE01 : TheThingsNetworkParser
             new("RSSI", parserData.GetRSSI()),                    
         };
 
-        return new ParsedData(devEUI, dateTime, keyValues);
+        return new ParsedData(devEUI, fPort, dateTime, keyValues);
     }
 }

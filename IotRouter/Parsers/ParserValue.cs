@@ -23,6 +23,11 @@ namespace IotRouter
             return AsString(_element);
         }
 
+        public decimal AsInt()
+        {
+            return AsInt(_element);
+        }
+
         public decimal AsDecimal()
         {
             return AsDecimal(_element);
@@ -39,6 +44,19 @@ namespace IotRouter
             {
                 case JsonValueKind.String:
                     return element.GetString();
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        public static int AsInt(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Number:
+                    return element.GetInt32();
+                case JsonValueKind.String:
+                    return int.Parse(element.GetString(), CultureInfo.InvariantCulture);
                 default:
                     throw new NotSupportedException();
             }

@@ -36,12 +36,14 @@ public class ParsedData
     }
 
     public string DevEUI { get; private set; }
+    public int FPort { get; private set; }
     public DateTime? DateTime { get; private set; }
     public IList<KeyValue> KeyValues { get; private set; }
 
-    public ParsedData(string devEUI, DateTime? dateTime, IList<KeyValue> keyValues)
+    public ParsedData(string devEUI, int fPort, DateTime? dateTime, IList<KeyValue> keyValues)
     {
         DevEUI = devEUI;
+        FPort = fPort;
         DateTime = dateTime;
         KeyValues = keyValues;
     }

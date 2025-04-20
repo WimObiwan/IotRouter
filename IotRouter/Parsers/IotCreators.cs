@@ -66,7 +66,7 @@ public class IotCreators : Parser
             new("RSSI", Convert.ToDecimal(SignalToRssi(signal)))                    
         };
 
-        return new ParsedData(devEui, dateTime, keyValues);
+        return new ParsedData(devEui, 0, dateTime, keyValues);
     }
 
     private class Packet

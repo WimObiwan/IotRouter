@@ -16,6 +16,7 @@ public class LHT65 : TheThingsNetworkParser
     protected override ParsedData Parse(ParserData parserData)
     {
         string devEUI = parserData.GetDevEUI();
+        int fPort = parserData.GetFPort();
         DateTime dateTime = parserData.GetTime();
 
         byte[] bytes = parserData.GetPayload();
@@ -54,6 +55,6 @@ public class LHT65 : TheThingsNetworkParser
                 keyValues.Add(new ParsedData.KeyValue("Soil.Temperature", temp_DS));
         }
 
-        return new ParsedData(devEUI, dateTime, keyValues);
+        return new ParsedData(devEUI, fPort, dateTime, keyValues);
     }
 }

@@ -17,6 +17,7 @@ namespace IotRouter
         protected override ParsedData Parse(ParserData parserData)
         {
             string devEUI = parserData.GetDevEUI();
+            int fPort = parserData.GetFPort();
             DateTime dateTime = parserData.GetTime();
 
             byte[] bytes = parserData.GetPayload();
@@ -43,7 +44,7 @@ namespace IotRouter
                 new ParsedData.KeyValue("temp", temperature)
             };
 
-            return new ParsedData(devEUI, dateTime, keyValues);
+            return new ParsedData(devEUI, fPort, dateTime, keyValues);
         }
     }
 }

@@ -54,7 +54,7 @@ public class WorxCloud : Parser
             new("HeadFirmware", packet.dat.head.fw)
         };
 
-        return new ParsedData(devEUI, dateTime, keyValues);
+        return new ParsedData(devEUI, 0, dateTime, keyValues);
     }
 
     private class Packet

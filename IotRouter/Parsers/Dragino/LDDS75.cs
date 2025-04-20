@@ -16,25 +16,33 @@ public class LDDS75 : TheThingsNetworkParser
     protected override ParsedData Parse(ParserData parserData)
     {
         string devEUI = parserData.GetDevEUI();
+        int fPort = parserData.GetFPort();
         DateTime dateTime = parserData.GetTime();
-
-        byte[] bytes = parserData.GetPayload();
-        int value;
-        
-        value = (bytes[0] << 8 | bytes[1]) & 0x3FFF;
-        decimal batV = value / 1000m;
-        // decimal batV_Old = parserData.GetPayloadValue("batV").AsDecimal();
-
-        decimal distanceMm = bytes[2] << 8 | bytes[3];
-        // decimal distanceMm_Old = parserData.GetPayloadValue("distanceMm").AsDecimal();
 
         var keyValues = new List<ParsedData.KeyValue>()
         {
-            new("batV", batV),
-            new("distance", distanceMm),
-            new("RSSI", parserData.GetRSSI()),                    
+            new("RSSI", parserData.GetRSSI())
         };
 
-        return new ParsedData(devEUI, dateTime, keyValues);
+        byte[] bytes = parserData.GetPayload();
+        if (fPort == 2)
+        {
+            int value;
+            
+            value = (bytes[0] << 8 | bytes[1]) & 0x3FFF;
+            decimal batV = value / 1000m;
+            // decimal batV_Old = parserData.GetPayloadValue("batV").AsDecimal();
+
+            decimal distanceMm = bytes[2] << 8 | bytes[3];
+            // decimal distanceMm_Old = parserData.GetPayloadValue("distanceMm").AsDecimal();
+
+            keyValues.AddRange(
+                [
+                    new("batV", batV),
+                    new("distance", distanceMm)
+                ]);
+        }
+
+        return new ParsedData(devEUI, fPort, dateTime, keyValues);
     }
 }
