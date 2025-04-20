@@ -2,3 +2,4 @@ bin/
 obj/
 appsettings.Local.json
 .idea
+.lens
