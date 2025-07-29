@@ -21,7 +21,7 @@ namespace IotRouter
             _rootElement = _document.RootElement;
             _uplinkMessageElement = _rootElement.GetProperty("uplink_message");
             _payloadElement = _uplinkMessageElement.GetProperty("frm_payload");
-            _payloadFieldsElement = _uplinkMessageElement.GetProperty("decoded_payload");
+            _uplinkMessageElement.TryGetProperty("decoded_payload", out _payloadFieldsElement);
             _metadataElement = _uplinkMessageElement.GetProperty("rx_metadata"); 
             //_gatewayElements = _metadataElement.GetProperty("gateways");
         }

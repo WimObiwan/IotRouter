@@ -18,7 +18,6 @@ public class MqttListener : IListener
     IMqttClient _mqttClient;
     private bool _disposedValue;
     private readonly CancellationTokenSource _reconnectCancellationTokenSource = new(); 
-    private int _trial = 0;
 
     public string Name { get; }
     private readonly string _server;
@@ -103,6 +102,7 @@ public class MqttListener : IListener
 
     private async Task Reconnect(CancellationToken cancellationToken)
     {
+        int _trial = 0;
         while (true)
         {
             if (_mqttClient.IsConnected)
@@ -117,7 +117,7 @@ public class MqttListener : IListener
             }
             catch (OperationCanceledException)
             {
-                _logger.LogWarning("Connecting to Kress MQTT canceled");
+                _logger.LogWarning("Connecting to MQTT canceled");
                 break;
             }
             catch (Exception e)
@@ -128,14 +128,14 @@ public class MqttListener : IListener
                     _trial *= 2;
                 int minutes = 10 * _trial;
                 
-                _logger.LogWarning(e, "Connecting to Kress MQTT failed.  Waiting {Minutes} minutes", minutes);
+                _logger.LogWarning(e, "Connecting to MQTT failed.  Waiting {Minutes} minutes", minutes);
                 try
                 {
                     await Task.Delay(TimeSpan.FromMinutes(minutes), cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogWarning("Connecting to Kress MQTT canceled");
+                    _logger.LogWarning("Connecting to MQTT canceled");
                     break;
                 }
             }
