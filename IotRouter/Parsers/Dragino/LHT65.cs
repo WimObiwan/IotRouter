@@ -38,9 +38,9 @@ public class LHT65 : TheThingsNetworkParser
 
         var keyValues = new List<ParsedData.KeyValue>()
         {
-            new ParsedData.KeyValue("BatV", batV),
-            new ParsedData.KeyValue("Air.Temperature", tempC_SHT),
-            new ParsedData.KeyValue("Air.Humidity", hum_SHT),
+            new ParsedData.KeyValue("batV", batV),
+            new ParsedData.KeyValue("tempC", tempC_SHT),
+            new ParsedData.KeyValue("humPrc", hum_SHT),
             new ParsedData.KeyValue("RSSI", parserData.GetRSSI()),                    
         };
 

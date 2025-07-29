@@ -50,7 +50,8 @@ namespace IotRouter
             // TODO: Add to config!
             var filter = new string[] { 
                 // Generic
-                "batV", "RSSI",
+                "batV",
+                "RSSI",
                 // WaterLevel
                 "distance", 
                 // WaterDetect
@@ -58,7 +59,10 @@ namespace IotRouter
                 // Moisture
                 "soilMoisturePrc",
                 "soilConductivity",
-                "soilTemperature"
+                "soilTemperature",
+                // Temperature
+                "tempC",
+                "humPrc"
             };
 
             var keyValues = parsedData.KeyValues.Where(kv => filter.Contains(kv.Key));
