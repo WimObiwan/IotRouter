@@ -43,14 +43,35 @@ public class IotCreators : Parser
         // http://wiki.dragino.com/xwiki/bin/view/Main/User%20Manual%20for%20LoRaWAN%20End%20Nodes/NDDS75%20NB-IoT%20Distance%20Detect%20Sensor%20User%20Manual/#H3.200BAccessNB-IoTModule
         // f86778705454507800980ce1090100030c64c7969c030cac165b00030aac165b0002e664b0786502ea64b074e102ea64b0715d02e964b06dd902ea64b06a5502e964b066d1
         // ^               ^   ^   ^ ^ ^ ^   ^       ^   ^       ^
-        string devEui = Convert.ToHexString(payload[0..8]);
-        //ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[8..10]));
-        ushort battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[10..12]));
+
+        string devEui;
+        ushort battery;
         byte signal = payload[12];
-        //byte mod = payload[13];
-        //byte interrupt = payload[14];
-        ushort distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[15..17]));
-        uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[17..21]));
+        ushort distance;
+        uint timestamp;
+        if (payload.Length <= 69)
+        {
+            devEui = Convert.ToHexString(payload[0..8]); // must start with F
+            //ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[8..10]));
+            battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[10..12]));
+           signal = payload[12];
+            //byte mod = payload[13];
+            //byte interrupt = payload[14];
+            distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[15..17]));
+            timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[17..21]));
+        }
+        else
+        {
+            devEui = Convert.ToHexString(payload[0..8]); // must start with F
+            ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[16..18]));
+            battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[18..20]));
+            signal = payload[20];
+            //byte mod = payload[21];
+            //byte interrupt = payload[22];
+            //byte reserved = payload[23];
+            distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[24..26]));
+            timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[26..30]));
+        }
 
         DateTime dateTime;
         if (timestamp != 0) 
