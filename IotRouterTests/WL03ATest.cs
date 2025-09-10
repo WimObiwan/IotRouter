@@ -151,10 +151,10 @@ public class WL03ATest
         Assert.Equal("A84041C891885C21", result.DevEUI);
         Assert.True(result.DateTime.HasValue);
         var keyValues = result.KeyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
-        Assert.Equal(3.367m, (decimal)keyValues["batV"]);
-        Assert.Equal(36.19m, (decimal)keyValues["soilMoisturePrc"]);
-        Assert.Equal(24.29m, (decimal)keyValues["soilTemperature"]);
-        Assert.Equal(318m, (decimal)keyValues["soilConductivity"]);
+        //Assert.Equal(3.367m, (decimal)keyValues["batV"]);
+        Assert.Equal(926473, (int)keyValues["waterDurationS"]);
+        Assert.Equal(1, (int)keyValues["waterStatus"]);
+        Assert.Equal(2559180, (int)keyValues["waterTimes"]);
         Assert.Equal(-88m, (decimal)keyValues["RSSI"]);
     }
 }

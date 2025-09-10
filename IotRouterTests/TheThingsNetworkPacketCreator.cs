@@ -20,6 +20,7 @@ public static class TheThingsNetworkPacketCreator
             public string frm_payload { init; get; }
             public string decoded_payload { init; get; }
             public RxMetaData[] rx_metadata { init; get; }
+            public int f_port { init; get; }
         }
 
         public record RxMetaData
@@ -54,7 +55,8 @@ public static class TheThingsNetworkPacketCreator
                     {
                         rssi = rssi
                     }
-                ]
+                ],
+                f_port = 15
             }
         };
 

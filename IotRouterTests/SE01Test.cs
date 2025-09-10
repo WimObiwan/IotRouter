@@ -17,7 +17,7 @@ public class SE01Test
         var parser = new SE01(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
-        { "end_device_ids": { "dev_eui": "eui" }, "uplink_message": { "received_at": "2024-08-09T14:14:13.093129857Z", "frm_payload": "DScMzA5CCfgBRxA=", "decoded_payload": "", "rx_metadata": [ {"rssi": "-81" } ] } }
+        { "end_device_ids": { "dev_eui": "eui" }, "uplink_message": { "received_at": "2024-08-09T14:14:13.093129857Z", "frm_payload": "DScMzA5CCfgBRxA=", "decoded_payload": "", "rx_metadata": [ {"rssi": "-81" } ], "f_port": 15 } }
         """;
 
         var result = parser.Parse(TheThingsNetworkPacketCreator.Create(rawJson));
