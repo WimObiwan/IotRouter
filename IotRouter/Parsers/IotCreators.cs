@@ -2,6 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration.Assemblies;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -44,6 +45,11 @@ public class IotCreators : Parser
         // f86778705454507800980ce1090100030c64c7969c030cac165b00030aac165b0002e664b0786502ea64b074e102ea64b0715d02e964b06dd902ea64b06a5502e964b066d1
         // ^               ^   ^   ^ ^ ^ ^   ^       ^   ^       ^
 
+        if (payload[1] == 0x60) // PS
+            return ParsePSNB(payload);
+
+        // Fallback old parsing
+
         string devEui;
         ushort battery;
         byte signal = payload[12];
@@ -54,14 +60,14 @@ public class IotCreators : Parser
             devEui = Convert.ToHexString(payload[0..8]); // must start with F
             //ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[8..10]));
             battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[10..12]));
-           signal = payload[12];
+            signal = payload[12];
             //byte mod = payload[13];
             //byte interrupt = payload[14];
             distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[15..17]));
             timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[17..21]));
         }
         else
-        {
+        {                
             devEui = Convert.ToHexString(payload[0..8]); // must start with F
             ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[16..18]));
             battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[18..20]));
@@ -84,6 +90,43 @@ public class IotCreators : Parser
             new("batV", battery * 0.001m),
             new("distance", Convert.ToDecimal(distance)),
             new("distance_raw", Convert.ToDecimal(distance)),
+            new("RSSI", Convert.ToDecimal(SignalToRssi(signal)))                    
+        };
+
+        return new ParsedData(devEui, 0, dateTime, keyValues);
+    }
+
+    private ParsedData ParsePSNB(byte[] payload)
+    {
+        string devEui = Convert.ToHexString(payload[0..8]); // must start with F
+        ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[16..18]));
+        ushort battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[18..20]));
+        byte signal = payload[20];
+        //byte in1 = payload[21];
+        //byte in2 = payload[22];
+        //byte gpioExitLevel = payload[23];
+        //byte gpioExitFlag = payload[24];
+        //byte idcAlarm = payload[25];
+        //byte vdcAlarm = payload[26];
+        ushort probeMod = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[25..27]));
+        ushort amperage = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[27..29]));
+        ushort voltage = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[29..31]));
+        uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[31..35]));
+
+        DateTime dateTime;
+        if (timestamp != 0) 
+            dateTime = DateTime.UnixEpoch.AddSeconds(timestamp);
+        else
+            dateTime = DateTime.UtcNow;
+
+        decimal pressure = amperage / 1000.0m; // 4.0mA - 20.0mA
+        decimal distance = (pressure - 4.0m) / (20.0m - 4.0m) * 5000.0m; // 5m cable length
+        
+        var keyValues = new List<ParsedData.KeyValue>()
+        {
+            new("batV", battery * 0.001m),
+            new("pressure", pressure),
+            new("distance", distance),
             new("RSSI", Convert.ToDecimal(SignalToRssi(signal)))                    
         };
 

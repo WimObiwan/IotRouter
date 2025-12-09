@@ -4,7 +4,7 @@ using Moq;
 
 namespace IotRouterTests;
 
-public class PSTest
+public class PSLBTest
 {
     [Fact]
     public void Test()
