@@ -35,7 +35,7 @@ public class UdpServerService : IUdpServerService, IAsyncDisposable
         _udpServerTask = new Tuple<Task, CancellationTokenSource>(task, cancellationTokenSource);
     }
 
-    private IPNetwork ParseIpNetwork(string s)
+    private System.Net.IPNetwork ParseIpNetwork(string s)
     {
         int slash = s.IndexOf('/');
         IPAddress ip;
@@ -51,10 +51,10 @@ public class UdpServerService : IUdpServerService, IAsyncDisposable
             prefixLength = 32;
         }
 
-        return new IPNetwork(ip, prefixLength);
+        return new System.Net.IPNetwork(ip, prefixLength);
     }
 
-    private async Task ThreadMethod(CancellationToken ct, List<IPNetwork> ipWhitelistNetworks)
+    private async Task ThreadMethod(CancellationToken ct, List<System.Net.IPNetwork> ipWhitelistNetworks)
     {
         try
         {

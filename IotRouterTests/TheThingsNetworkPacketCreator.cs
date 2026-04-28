@@ -11,15 +11,15 @@ public static class TheThingsNetworkPacketCreator
     {
         public record EndDeviceIds
         {
-            public string dev_eui { init; get; }
+            public required string dev_eui { init; get; }
         }
 
         public record UplinkMessage
         {
             public DateTime received_at { init; get; }
-            public string frm_payload { init; get; }
-            public string decoded_payload { init; get; }
-            public RxMetaData[] rx_metadata { init; get; }
+            public required string frm_payload { init; get; }
+            public required string decoded_payload { init; get; }
+            public required RxMetaData[] rx_metadata { init; get; }
             public int f_port { init; get; }
         }
 
@@ -28,8 +28,8 @@ public static class TheThingsNetworkPacketCreator
             public int rssi { init; get; }
         }
 
-        public EndDeviceIds end_device_ids { init; get; }
-        public UplinkMessage uplink_message { init; get; }
+        public required EndDeviceIds end_device_ids { init; get; }
+        public required UplinkMessage uplink_message { init; get; }
     }
 
     public static byte[] Create(

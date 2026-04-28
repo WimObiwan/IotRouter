@@ -49,8 +49,7 @@ public class MqttListener : IListener
             .WithClientId("IotRouter")
             .WithTcpServer(_server)
             .WithCredentials(_username, _password)
-            .WithTlsOptions(o => o.
-                UseTls())
+            .WithTlsOptions(o => o.UseTls())
             .WithCleanSession()
             .Build();
 

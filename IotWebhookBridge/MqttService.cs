@@ -32,11 +32,10 @@ public class MqttService : IMqttService, IDisposable
                 .WithCredentials(_mqttOptions.Username, _mqttOptions.Password)
                 .WithTcpServer(_mqttOptions.Uri, _mqttOptions.Port)
                 .WithCleanSession()
-                .WithTls(o => 
-                {
-                    o.IgnoreCertificateRevocationErrors = true;
-                    o.IgnoreCertificateChainErrors = true;
-                });
+                .WithTlsOptions(o => o
+                    .WithIgnoreCertificateRevocationErrors()
+                    .WithIgnoreCertificateChainErrors()
+                );
 
             var options = messageBuilder.Build();
             await _mqttClient.ConnectAsync(options);
