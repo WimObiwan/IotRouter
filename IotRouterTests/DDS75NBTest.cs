@@ -31,6 +31,71 @@ public class DDS75NBTest
         Assert.Equal(-93m, (decimal)keyValues["RSSI"]);
     }
 
+    [Fact]
+    public void Test2()
+    {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var logger = Mock.Of<ILogger<IotCreators>>();
+        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+
+        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+
+        var rawJson = """
+        {"reports":[{"value":"F860631071942560F90140511276772609840E180B01000002A869F106FF02A869F106F302A869F0EAD3029B69F0CEB3029369F0B293027E69F09670027D69F07A53027D69F05E33027A69F04213"}]}
+        """;
+
+        var result = parser.Parse(Encoding.UTF8.GetBytes(rawJson));
+        Assert.Equal("F860631071942560", result.DevEUI);
+        Assert.Equal(0, result.FPort);
+        Assert.Equal(639130004470000000, result.DateTime?.Ticks);
+        var keyValues = result.KeyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
+        Assert.Equal(680m, (decimal)keyValues["distance"]);
+        Assert.Equal(3.608m, (decimal)keyValues["batV"]);
+        Assert.Equal(-89m, (decimal)keyValues["RSSI"]);
+    }
+
+    [Fact]
+    public void InvalidTimestampFallsBackToReportTimestamp()
+    {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var logger = Mock.Of<ILogger<IotCreators>>();
+        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+
+        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+
+        var rawJson = """
+        {"reports":[{"timestamp":1777403647000,"value":"F860631071942560F90140511276772609840E180B01000002A800000000FF02A869F106F302A869F0EAD3029B69F0CEB3029369F0B293027E69F09670027D69F07A53027D69F05E33027A69F04213"}]}
+        """;
+
+        var result = parser.Parse(Encoding.UTF8.GetBytes(rawJson));
+        Assert.Equal("F860631071942560", result.DevEUI);
+        Assert.Equal(0, result.FPort);
+        Assert.Equal(639130004470000000, result.DateTime?.Ticks);
+    }
+
+    [Fact]
+    public void Test3()
+    {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var logger = Mock.Of<ILogger<IotCreators>>();
+        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+
+        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+
+        var rawJson = """
+        {"reports":[{"value":"F86778705454507800980CD408010003076533F6CD03066533F29C013D6533E48D01416533D67C00FA6533C86903036533BA52013E6533AC4500FA65339E3200FA65339022"}]}
+        """;
+
+        var result = parser.Parse(Encoding.UTF8.GetBytes(rawJson));
+        Assert.Equal("F867787054545078", result.DevEUI);
+        Assert.Equal(0, result.FPort);
+        Assert.Equal(638335011330000000, result.DateTime?.Ticks);
+        var keyValues = result.KeyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
+        Assert.Equal(775m, (decimal)keyValues["distance"]);
+        Assert.Equal(3.284m, (decimal)keyValues["batV"]);
+        Assert.Equal(-95m, (decimal)keyValues["RSSI"]);
+    }
+
 //     [Fact]
 //     public void TestDeviceStatus()
 //     {

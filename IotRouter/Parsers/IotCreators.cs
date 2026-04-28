@@ -45,8 +45,8 @@ public class IotCreators : Parser
         // f86778705454507800980ce1090100030c64c7969c030cac165b00030aac165b0002e664b0786502ea64b074e102ea64b0715d02e964b06dd902ea64b06a5502e964b066d1
         // ^               ^   ^   ^ ^ ^ ^   ^       ^   ^       ^
 
-        if (payload[1] == 0x60) // PS
-            return ParsePSNB(payload);
+        if (IsLikelyPSNBPayload(payload))
+            return ParsePSNB(payload, report.timestamp);
 
         // Fallback old parsing
 
@@ -79,11 +79,7 @@ public class IotCreators : Parser
             timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[26..30]));
         }
 
-        DateTime dateTime;
-        if (timestamp != 0) 
-            dateTime = DateTime.UnixEpoch.AddSeconds(timestamp);
-        else
-            dateTime = DateTime.UtcNow;
+        DateTime dateTime = ResolveDateTime(timestamp, report.timestamp);
         
         var keyValues = new List<ParsedData.KeyValue>()
         {
@@ -96,7 +92,7 @@ public class IotCreators : Parser
         return new ParsedData(devEui, 0, dateTime, keyValues);
     }
 
-    private ParsedData ParsePSNB(byte[] payload)
+    private ParsedData ParsePSNB(byte[] payload, long? reportTimestamp)
     {
         string devEui = Convert.ToHexString(payload[0..8]); // must start with F
         ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[16..18]));
@@ -113,11 +109,7 @@ public class IotCreators : Parser
         ushort voltage = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[29..31]));
         uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[31..35]));
 
-        DateTime dateTime;
-        if (timestamp != 0) 
-            dateTime = DateTime.UnixEpoch.AddSeconds(timestamp);
-        else
-            dateTime = DateTime.UtcNow;
+        DateTime dateTime = ResolveDateTime(timestamp, reportTimestamp);
 
         decimal pressure = amperage / 1000.0m; // 4.0mA - 20.0mA
         decimal distance = (pressure - 4.0m) / (20.0m - 4.0m) * 5000.0m; // 5m cable length
@@ -133,12 +125,71 @@ public class IotCreators : Parser
         return new ParsedData(devEui, 0, dateTime, keyValues);
     }
 
+    private static bool IsLikelyPSNBPayload(byte[] payload)
+    {
+        // Byte 1 == 0x60 is not unique to PS sensors, so require PS-specific field plausibility.
+        if (payload.Length < 35 || payload[1] != 0x60)
+            return false;
+
+        ushort amperage = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[27..29]));
+        decimal pressure = amperage / 1000.0m;
+        uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[31..35]));
+
+        return pressure is >= 3.0m and <= 22.0m && timestamp != 0;
+    }
+
+    private DateTime ResolveDateTime(uint payloadTimestamp, long? reportTimestamp)
+    {
+        if (TryConvertUnixSeconds(payloadTimestamp, out var payloadDateTime) && IsPlausibleDate(payloadDateTime))
+            return payloadDateTime;
+
+        if (TryConvertReportTimestamp(reportTimestamp, out var reportDateTime) && IsPlausibleDate(reportDateTime))
+            return reportDateTime;
+
+        return DateTime.UtcNow;
+    }
+
+    private static bool TryConvertUnixSeconds(uint timestamp, out DateTime dateTime)
+    {
+        if (timestamp == 0)
+        {
+            dateTime = default;
+            return false;
+        }
+
+        dateTime = DateTime.UnixEpoch.AddSeconds(timestamp);
+        return true;
+    }
+
+    private static bool TryConvertReportTimestamp(long? reportTimestamp, out DateTime dateTime)
+    {
+        if (reportTimestamp is null or <= 0)
+        {
+            dateTime = default;
+            return false;
+        }
+
+        long timestamp = reportTimestamp.Value;
+        dateTime = timestamp >= 100_000_000_000
+            ? DateTime.UnixEpoch.AddMilliseconds(timestamp)
+            : DateTime.UnixEpoch.AddSeconds(timestamp);
+        return true;
+    }
+
+    private static bool IsPlausibleDate(DateTime dateTime)
+    {
+        // Device clocks can drift, but values far outside this range are usually bad payload timestamps.
+        var minDate = new DateTime(2010, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var maxDate = DateTime.UtcNow.AddDays(30);
+        return dateTime >= minDate && dateTime <= maxDate;
+    }
+
     private class Packet
     {
         public class Report
         {
             //public string serialNumber { get; init; }
-            //public long timestamp { get; init; }
+            public long? timestamp { get; init; }
             public string value { get; init; }
         }
 
