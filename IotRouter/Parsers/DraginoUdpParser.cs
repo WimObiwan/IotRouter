@@ -10,10 +10,10 @@ using Microsoft.Extensions.Logging;
 
 namespace IotRouter.Parsers;
 
-public class IotCreators : Parser
+public class DraginoUdpParser : Parser
 {
-    public IotCreators(IServiceProvider serviceProvider, IConfigurationSection config, string name)
-        : base(serviceProvider.GetService<ILogger<IotCreators>>(), name)
+    public DraginoUdpParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)
+        : base(serviceProvider.GetService<ILogger<DraginoUdpParser>>(), name)
     {
     }
 
@@ -33,42 +33,61 @@ public class IotCreators : Parser
         // f86778705454507800980ce1090100030c64c7969c030cac165b00030aac165b0002e664b0786502ea64b074e102ea64b0715d02e964b06dd902ea64b06a5502e964b066d1
         // ^               ^   ^   ^ ^ ^ ^   ^       ^   ^       ^
 
-
-        if (IsLikelyPSNBPayload(payload))
-            return ParsePSNB(payload, report.timestamp);
-
-        // Fallback old parsing
-
-        string devEui;
-        ushort battery;
-        byte signal = payload[12];
-        ushort distance;
-        uint timestamp;
-        if (payload.Length <= 69)
+        if (payload.Length > 69)
         {
-            devEui = Convert.ToHexString(payload[0..8]); // must start with F
-            //ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[8..10]));
-            battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[10..12]));
-            signal = payload[12];
-            //byte mod = payload[13];
-            //byte interrupt = payload[14];
-            distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[15..17]));
-            timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[17..21]));
-        }
-        else
-        {                
-            devEui = Convert.ToHexString(payload[0..8]); // must start with F
-            ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[16..18]));
-            battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[18..20]));
-            signal = payload[20];
-            //byte mod = payload[21];
-            //byte interrupt = payload[22];
-            //byte reserved = payload[23];
-            distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[24..26]));
-            timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[26..30]));
+            ParsedData parsedData;
+            byte type = payload[16];
+            if (type == 0x09)
+                parsedData = ParseDDS75_New(payload, report.timestamp);
+            else if (type == 0x01)
+                parsedData = ParsePSNB(payload, report.timestamp);
+            else
+                parsedData = null;
+
+            if (parsedData is not null)
+                return parsedData;
         }
 
-        DateTime dateTime = ResolveDateTime(timestamp, report.timestamp);
+        return ParseDDS75_Old(payload, report.timestamp);
+    }
+
+    private ParsedData ParseDDS75_Old(byte[] payload, long? reportTimestamp)
+    {
+        string devEui = Convert.ToHexString(payload[0..8]); // must start with F
+        //ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[8..10]));
+        ushort battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[10..12]));
+        byte signal = payload[12];
+        //byte mod = payload[13];
+        //byte interrupt = payload[14];
+        ushort distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[15..17]));
+        uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[17..21]));
+
+        DateTime dateTime = ResolveDateTime(timestamp, reportTimestamp);
+        
+        var keyValues = new List<ParsedData.KeyValue>()
+        {
+            new("batV", battery * 0.001m),
+            new("distance", Convert.ToDecimal(distance)),
+            new("distance_raw", Convert.ToDecimal(distance)),
+            new("RSSI", Convert.ToDecimal(SignalToRssi(signal)))                    
+        };
+
+        return new ParsedData(devEui, 0, dateTime, keyValues);
+    }
+
+    private ParsedData ParseDDS75_New(byte[] payload, long? reportTimestamp)
+    {
+        string devEui = Convert.ToHexString(payload[0..8]); // must start with F
+        ushort version = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[16..18]));
+        ushort battery = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[18..20]));
+        byte signal = payload[20];
+        //byte mod = payload[21];
+        //byte interrupt = payload[22];
+        //byte reserved = payload[23];
+        ushort distance = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[24..26]));
+        uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[26..30]));
+
+        DateTime dateTime = ResolveDateTime(timestamp, reportTimestamp);
         
         var keyValues = new List<ParsedData.KeyValue>()
         {
@@ -114,24 +133,6 @@ public class IotCreators : Parser
         return new ParsedData(devEui, 0, dateTime, keyValues);
     }
 
-    private static bool IsLikelyPSNBPayload(byte[] payload)
-    {
-        // Byte 1 == 0x60 is not unique to PS sensors, so require PS-specific field plausibility.
-        if (payload.Length < 35 || payload[1] != 0x60)
-            return false;
-
-        ushort probeMod = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[25..27]));
-        ushort amperage = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[27..29]));
-        decimal pressure = amperage / 1000.0m;
-        uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[31..35]));
-
-        // Keep this permissive enough for PS variants while filtering DDS history frames.
-        return probeMod <= 10
-               && pressure is >= 3.0m and <= 22.0m
-               && TryConvertUnixSeconds(timestamp, out var dateTime)
-               && IsPlausibleDate(dateTime);
-    }
-
     private DateTime ResolveDateTime(uint payloadTimestamp, long? reportTimestamp)
     {
         if (TryConvertUnixSeconds(payloadTimestamp, out var payloadDateTime) && IsPlausibleDate(payloadDateTime))
@@ -173,7 +174,7 @@ public class IotCreators : Parser
     private static bool IsPlausibleDate(DateTime dateTime)
     {
         // Device clocks can drift, but values far outside this range are usually bad payload timestamps.
-        var minDate = new DateTime(2010, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var minDate = DateTime.UtcNow.AddYears(-10);
         var maxDate = DateTime.UtcNow.AddDays(30);
         return dateTime >= minDate && dateTime <= maxDate;
     }

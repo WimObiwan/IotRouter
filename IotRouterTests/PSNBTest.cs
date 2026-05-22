@@ -12,10 +12,10 @@ public class PSNBTest
     public void Test()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<IotCreators>>();
+        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
         serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
 
-        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F860631074843179F901405112767725017C0E24070000000000000FA20000693704D600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}]}
@@ -36,10 +36,10 @@ public class PSNBTest
     public void Test2()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<IotCreators>>();
+        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
         serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
 
-        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F860631074843179F901405112767725017C0E210900000000000011550000693729240FA30000693725AE0FA300006937222A0FA3000069371EA60FA3000069371B220FA300006937179E0FA300006937141A0FA30000693710960FA2000069370D12"}]}

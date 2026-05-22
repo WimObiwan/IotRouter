@@ -12,10 +12,10 @@ public class NDDS75Test
     public void Test()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<IotCreators>>();
+        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
         serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
 
-        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F86778705454507800980D1607010002E8655683D402E865567E8402E76556707402E76556626402E86556545402E76556464502E76556383502E765562A2502E765561C15"}]}

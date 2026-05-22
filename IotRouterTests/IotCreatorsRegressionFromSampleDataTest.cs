@@ -8,7 +8,7 @@ using Moq;
 
 namespace IotRouterTests;
 
-public class IotCreatorsRegressionFromSampleDataTest
+public class DraginoUdpParserRegressionFromSampleDataTest
 {
     private static readonly Regex DataLineRegex = new(@"Data:\s+(\{.+\})", RegexOptions.Compiled);
 
@@ -16,10 +16,10 @@ public class IotCreatorsRegressionFromSampleDataTest
     public void SampleDataDumpProducesStableParsedOutputFingerprint()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<IotCreators>>();
+        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
         serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
 
-        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
         var sampleFile = FindSampleDataFile();
 
         var signatures = new List<string>();
