@@ -10,12 +10,12 @@ using Microsoft.Extensions.Logging;
 
 namespace IotRouter.Parsers;
 
-public class DraginoUdpParser : Parser
+public class DraginoUdp : Parser
 {
     private readonly TimeProvider _timeProvider;
 
-    public DraginoUdpParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)
-        : base(serviceProvider.GetService<ILogger<DraginoUdpParser>>(), name)
+    public DraginoUdp(IServiceProvider serviceProvider, IConfigurationSection config, string name)
+        : base(serviceProvider.GetService<ILogger<DraginoUdp>>(), name)
     {
         _timeProvider = serviceProvider.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
     }

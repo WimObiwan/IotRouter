@@ -12,12 +12,12 @@ public class DDS75NBTest
     public void Test()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
+        var logger = Mock.Of<ILogger<DraginoUdp>>();
         var now = new DateTimeOffset(new DateTime(638931276750000000, DateTimeKind.Utc));
-        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdp>))).Returns(logger);
         serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
-        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdp(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F861275079854879F90140511276772409820E3909010000010168C1BCEB000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}]}
@@ -37,12 +37,12 @@ public class DDS75NBTest
     public void Test2()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
+        var logger = Mock.Of<ILogger<DraginoUdp>>();
         var now = new DateTimeOffset(new DateTime(639130040470000000, DateTimeKind.Utc));
-        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdp>))).Returns(logger);
         serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
-        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdp(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F860631071942560F90140511276772609840E180B01000002A869F106FF02A869F106F302A869F0EAD3029B69F0CEB3029369F0B293027E69F09670027D69F07A53027D69F05E33027A69F04213"}]}
@@ -62,12 +62,12 @@ public class DDS75NBTest
     public void InvalidTimestampFallsBackToReportTimestamp()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
+        var logger = Mock.Of<ILogger<DraginoUdp>>();
         var now = new DateTimeOffset(new DateTime(639130040470000000, DateTimeKind.Utc));
-        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdp>))).Returns(logger);
         serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
-        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdp(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"timestamp":1777403647000,"value":"F860631071942560F90140511276772609840E180B01000002A800000000FF02A869F106F302A869F0EAD3029B69F0CEB3029369F0B293027E69F09670027D69F07A53027D69F05E33027A69F04213"}]}
@@ -83,12 +83,12 @@ public class DDS75NBTest
     public void Test3()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
+        var logger = Mock.Of<ILogger<DraginoUdp>>();
         var now = new DateTimeOffset(new DateTime(638335047330000000, DateTimeKind.Utc));
-        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdp>))).Returns(logger);
         serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
-        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdp(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F86778705454507800980CD408010003076533F6CD03066533F29C013D6533E48D01416533D67C00FA6533C86903036533BA52013E6533AC4500FA65339E3200FA65339022"}]}
@@ -108,12 +108,12 @@ public class DDS75NBTest
     public void Test4()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
+        var logger = Mock.Of<ILogger<DraginoUdp>>();
         var now = new DateTimeOffset(new DateTime(639150565970000000, DateTimeKind.Utc));
-        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdp>))).Returns(logger);
         serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
-        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdp(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F860631071942560F90140511276772609840E220B01000005176A1058C504CF69FEC4E704D069FEA68404CF69FE8A6404CF69FE6E4404D069FE522404D169FE360404D069FE19E404C869FDFDC4"}]}

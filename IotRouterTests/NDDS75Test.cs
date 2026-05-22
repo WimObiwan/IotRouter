@@ -12,12 +12,12 @@ public class NDDS75Test
     public void Test()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
-        var logger = Mock.Of<ILogger<DraginoUdpParser>>();
+        var logger = Mock.Of<ILogger<DraginoUdp>>();
         var now = new DateTimeOffset(new DateTime(638357690600000000, DateTimeKind.Utc));
-        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdp>))).Returns(logger);
         serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
-        var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
+        var parser = new DraginoUdp(serviceProviderMock.Object, null, "test");
 
         var rawJson = """
         {"reports":[{"value":"F86778705454507800980D1607010002E8655683D402E865567E8402E76556707402E76556626402E86556545402E76556464502E76556383502E765562A2502E765561C15"}]}
