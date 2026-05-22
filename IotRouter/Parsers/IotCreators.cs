@@ -1,13 +1,9 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration.Assemblies;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -29,14 +25,6 @@ public class IotCreators : Parser
 
         if (!(packet.reports.FirstOrDefault() is { } report))
             return null;
-        // string serialNumber = report.serialNumber;
-        //
-        // var match = Regex.Match(serialNumber, @"^IMEI:(\d+)$");
-        // if (!match.Success)
-        //     throw new Exception("Unrecognized serialNumber");
-        // string devEui = match.Groups[1].Value;
-
-        // var dateTime = DateTime.UnixEpoch.AddMilliseconds(report.timestamp);
 
         var payloadText = report.value;
         var payload = Convert.FromHexString(payloadText);
@@ -44,6 +32,7 @@ public class IotCreators : Parser
         // http://wiki.dragino.com/xwiki/bin/view/Main/User%20Manual%20for%20LoRaWAN%20End%20Nodes/NDDS75%20NB-IoT%20Distance%20Detect%20Sensor%20User%20Manual/#H3.200BAccessNB-IoTModule
         // f86778705454507800980ce1090100030c64c7969c030cac165b00030aac165b0002e664b0786502ea64b074e102ea64b0715d02e964b06dd902ea64b06a5502e964b066d1
         // ^               ^   ^   ^ ^ ^ ^   ^       ^   ^       ^
+
 
         if (IsLikelyPSNBPayload(payload))
             return ParsePSNB(payload, report.timestamp);
