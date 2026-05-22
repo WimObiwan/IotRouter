@@ -12,9 +12,12 @@ namespace IotRouter.Parsers;
 
 public class DraginoUdpParser : Parser
 {
+    private readonly TimeProvider _timeProvider;
+
     public DraginoUdpParser(IServiceProvider serviceProvider, IConfigurationSection config, string name)
         : base(serviceProvider.GetService<ILogger<DraginoUdpParser>>(), name)
     {
+        _timeProvider = serviceProvider.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
     }
 
     public override ParsedData Parse(byte[] data)
@@ -141,7 +144,7 @@ public class DraginoUdpParser : Parser
         if (TryConvertReportTimestamp(reportTimestamp, out var reportDateTime) && IsPlausibleDate(reportDateTime))
             return reportDateTime;
 
-        return DateTime.UtcNow;
+        return _timeProvider.GetUtcNow().UtcDateTime;
     }
 
     private static bool TryConvertUnixSeconds(uint timestamp, out DateTime dateTime)
@@ -171,11 +174,12 @@ public class DraginoUdpParser : Parser
         return true;
     }
 
-    private static bool IsPlausibleDate(DateTime dateTime)
+    private bool IsPlausibleDate(DateTime dateTime)
     {
         // Device clocks can drift, but values far outside this range are usually bad payload timestamps.
-        var minDate = DateTime.UtcNow.AddYears(-10);
-        var maxDate = DateTime.UtcNow.AddDays(30);
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var minDate = now.AddYears(-10);
+        var maxDate = now.AddDays(30);
         return dateTime >= minDate && dateTime <= maxDate;
     }
 
