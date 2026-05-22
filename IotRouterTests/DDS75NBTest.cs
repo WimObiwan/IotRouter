@@ -96,6 +96,30 @@ public class DDS75NBTest
         Assert.Equal(-95m, (decimal)keyValues["RSSI"]);
     }
 
+    [Fact]
+    public void Test4()
+    {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var logger = Mock.Of<ILogger<IotCreators>>();
+        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+
+        var parser = new IotCreators(serviceProviderMock.Object, null, "test");
+
+        var rawJson = """
+        {"reports":[{"value":"F860631071942560F90140511276772609840E220B01000005176A1058C504CF69FEC4E704D069FEA68404CF69FE8A6404CF69FE6E4404D069FE522404D169FE360404D069FE19E404C869FDFDC4"}]}
+        """;
+
+        var result = parser.Parse(Encoding.UTF8.GetBytes(rawJson));
+        Assert.Equal("F860631071942560", result.DevEUI);
+        Assert.Equal(0, result.FPort);
+        Assert.Equal(639150529970000000, result.DateTime?.Ticks);
+        var keyValues = result.KeyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
+        Assert.Equal(1303m, (decimal)keyValues["distance"]);
+        Assert.Equal(3.618m, (decimal)keyValues["batV"]);
+        Assert.Equal(-89m, (decimal)keyValues["RSSI"]);
+    }
+
+
 //     [Fact]
 //     public void TestDeviceStatus()
 //     {

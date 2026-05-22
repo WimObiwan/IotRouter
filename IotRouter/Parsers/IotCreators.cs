@@ -131,11 +131,16 @@ public class IotCreators : Parser
         if (payload.Length < 35 || payload[1] != 0x60)
             return false;
 
+        ushort probeMod = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[25..27]));
         ushort amperage = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(payload[27..29]));
         decimal pressure = amperage / 1000.0m;
         uint timestamp = BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt32(payload[31..35]));
 
-        return pressure is >= 3.0m and <= 22.0m && timestamp != 0;
+        // Keep this permissive enough for PS variants while filtering DDS history frames.
+        return probeMod <= 10
+               && pressure is >= 3.0m and <= 22.0m
+               && TryConvertUnixSeconds(timestamp, out var dateTime)
+               && IsPlausibleDate(dateTime);
     }
 
     private DateTime ResolveDateTime(uint payloadTimestamp, long? reportTimestamp)
