@@ -178,8 +178,8 @@ public class DraginoUdpParser : Parser
     {
         // Device clocks can drift, but values far outside this range are usually bad payload timestamps.
         var now = _timeProvider.GetUtcNow().UtcDateTime;
-        var minDate = now.AddYears(-10);
-        var maxDate = now.AddDays(30);
+        var minDate = now.AddDays(-3);
+        var maxDate = now.AddDays(3);
         return dateTime >= minDate && dateTime <= maxDate;
     }
 

@@ -13,7 +13,9 @@ public class DDS75NBTest
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var logger = Mock.Of<ILogger<DraginoUdpParser>>();
-        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+        var now = new DateTimeOffset(new DateTime(638931276750000000, DateTimeKind.Utc));
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
         var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
@@ -36,7 +38,9 @@ public class DDS75NBTest
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var logger = Mock.Of<ILogger<DraginoUdpParser>>();
-        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+        var now = new DateTimeOffset(new DateTime(639130040470000000, DateTimeKind.Utc));
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
         var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
@@ -59,7 +63,9 @@ public class DDS75NBTest
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var logger = Mock.Of<ILogger<DraginoUdpParser>>();
-        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+        var now = new DateTimeOffset(new DateTime(639130040470000000, DateTimeKind.Utc));
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
         var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
@@ -78,7 +84,9 @@ public class DDS75NBTest
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var logger = Mock.Of<ILogger<DraginoUdpParser>>();
-        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+        var now = new DateTimeOffset(new DateTime(638335047330000000, DateTimeKind.Utc));
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
         var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 
@@ -101,7 +109,9 @@ public class DDS75NBTest
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var logger = Mock.Of<ILogger<DraginoUdpParser>>();
-        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+        var now = new DateTimeOffset(new DateTime(639150565970000000, DateTimeKind.Utc));
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(now));
 
         var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
 

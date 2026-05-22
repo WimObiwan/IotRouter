@@ -17,7 +17,9 @@ public class DraginoUdpParserRegressionFromSampleDataTest
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var logger = Mock.Of<ILogger<DraginoUdpParser>>();
-        serviceProviderMock.Setup(m => m.GetService(It.IsAny<Type>())).Returns(logger);
+        var today = new DateTime(2026, 5, 22, 0, 0, 0, DateTimeKind.Utc);
+        serviceProviderMock.Setup(m => m.GetService(typeof(ILogger<DraginoUdpParser>))).Returns(logger);
+        serviceProviderMock.Setup(m => m.GetService(typeof(TimeProvider))).Returns(new FixedTimeProvider(today));
 
         var parser = new DraginoUdpParser(serviceProviderMock.Object, null, "test");
         var sampleFile = FindSampleDataFile();
@@ -50,7 +52,7 @@ public class DraginoUdpParserRegressionFromSampleDataTest
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalOutput));
         var hash = Convert.ToHexString(hashBytes);
 
-        Assert.Equal("8AF1D33BCCB9F927EC0B397BD7431C9786A71FAC496A1855AD0EF90CA05B2FEC", hash);
+        Assert.Equal("9E40CB80750B1C0F7D3E37691CB5C7253D6DFEE0BE2135495AAF300E6BC2F604", hash);
     }
 
     private static string FindSampleDataFile()
